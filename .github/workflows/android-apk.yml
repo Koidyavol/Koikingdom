@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: koikingdom-android-apk
+  cancel-in-progress: true
+
 jobs:
   build-android:
     name: Export Android APK
@@ -76,30 +80,33 @@ jobs:
           test -s "$GITHUB_WORKSPACE/debug.keystore"
           test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
 
-      - name: Import project and install Android build template
+      - name: Import Godot project
         shell: bash
+        timeout-minutes: 5
         run: |
           set -euo pipefail
           godot --version
-          godot --headless --editor --path . --quit
-          # Let Godot install its own Gradle template so it writes the
-          # version metadata required by the Android exporter.
-          godot --headless --editor --path . --install-android-build-template
-          test -f android/build/build.gradle
-          test -f android/build/settings.gradle
-          test -s android/build/version.txt
-          echo "Godot Android Gradle build template and version metadata verified."
+          timeout 240s godot --headless --editor --path . --quit
 
-      - name: Export and validate APK
+      - name: Install Android template and export APK
         shell: bash
+        timeout-minutes: 18
         run: |
           set -euo pipefail
-          godot --headless --path . --export-debug Android build/KoiKingdom.apk
+          # Godot documents this install flag for use together with export.
+          # Keep both operations in one bounded process to avoid an editor
+          # instance waiting indefinitely after template installation.
+          timeout 16m godot --headless --path . \
+            --install-android-build-template \
+            --export-debug Android build/KoiKingdom.apk
+          test -s android/build/build.gradle
+          test -s android/build/settings.gradle
+          test -s android/build/version.txt
           test -s build/KoiKingdom.apk
           file build/KoiKingdom.apk
           unzip -t build/KoiKingdom.apk
           unzip -l build/KoiKingdom.apk | grep -q "AndroidManifest.xml"
-          echo "APK export and archive validation passed."
+          echo "Android template metadata and APK validation passed."
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
