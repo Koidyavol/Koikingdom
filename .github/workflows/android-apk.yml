@@ -1,0 +1,59 @@
+name: Build Koi Kingdom Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "project.godot"
+      - "scenes/**"
+      - "scripts/**"
+      - "assets/**"
+      - "export_presets.cfg"
+      - ".github/workflows/android-apk.yml"
+
+jobs:
+  android-apk:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3.0
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Godot project import
+        run: godot --headless --editor --path . --quit
+
+      - name: Verify project startup
+        run: godot --headless --path . --quit-after 3
+
+      - name: Prepare temporary debug signing key
+        run: |
+          mkdir -p build
+          keytool -genkeypair -v \
+            -keystore "$PWD/build/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Koi Kingdom Debug,O=Koidyavol,C=ID"
+
+      - name: Export Android APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/build/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug "Android" build/KoiKingdom.apk
+          test -s build/KoiKingdom.apk
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Koi-Kingdom-Android-APK
+          path: build/KoiKingdom.apk
+          if-no-files-found: error
+          retention-days: 14
