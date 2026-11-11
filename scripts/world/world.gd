@@ -11,6 +11,7 @@ var camera: Camera2D
 var hud: CanvasLayer
 var clock_label: Label
 var profile_label: Label
+var kingdom_label: Label
 var player: CharacterBody2D
 var citizens: Array[Node] = []
 var social_simulation_timer := 0.0
@@ -35,6 +36,7 @@ func _ready() -> void:
     camera.make_current()
 
     RelationshipManager.apply_state(saved.get("relationships", {}))
+    KingdomManager.apply_state(saved.get("kingdom", {}))
     _spawn_npcs(saved.get("citizens", []))
     _last_family_day = TimeManager.day
     _build_hud()
@@ -86,6 +88,9 @@ func _spawn_npcs(saved_citizens: Array) -> void:
 func _simulate_family_day() -> void:
     _last_family_day = TimeManager.day
     var births := RelationshipManager.process_family_day(citizens, TimeManager.day)
+    KingdomManager.process_day(citizens, TimeManager.day)
+    if is_instance_valid(kingdom_label):
+        kingdom_label.text = KingdomManager.get_summary()
     for child_data in births:
         if citizens.size() >= 32:
             break
@@ -114,8 +119,8 @@ func _make_citizen(index: int) -> Dictionary:
 func _show_citizen_profile(profile: Dictionary) -> void:
     if not is_instance_valid(profile_label):
         return
-    profile_label.text = "%s  |  %s %s, %d\\nPekerjaan: %s  |  Sifat: %s\\nAktivitas: %s\\nRelasi: %s  |  Teman: %d\\nLapar %d%%  Energi %d%%  Sosial %d%%" % [
-        profile.name, profile.gender, profile.race, profile.age, profile.job,
+    profile_label.text = "%s  |  %s %s, %d\\nPeran: %s  |  Pekerjaan: %s\\nSifat: %s  |  Aktivitas: %s\\nRelasi: %s  |  Teman: %d\\nLapar %d%%  Energi %d%%  Sosial %d%%" % [
+        profile.name, profile.gender, profile.race, profile.age, profile.kingdom_role, profile.job,
         profile.personality, profile.activity, profile.relationship_status,
         profile.friends.size(), profile.hunger, profile.energy, profile.social
     ]
@@ -133,14 +138,21 @@ func _build_hud() -> void:
 
     profile_label = Label.new()
     profile_label.text = "Ketuk warga untuk melihat identitas dan kebutuhannya."
-    profile_label.position = Vector2(16, 58)
+    profile_label.position = Vector2(16, 82)
     profile_label.add_theme_color_override("font_color", Color.WHITE)
     profile_label.add_theme_font_size_override("font_size", 14)
     hud.add_child(profile_label)
 
+    kingdom_label = Label.new()
+    kingdom_label.text = KingdomManager.get_summary()
+    kingdom_label.position = Vector2(16, 158)
+    kingdom_label.add_theme_color_override("font_color", Color("#f2d9a6"))
+    kingdom_label.add_theme_font_size_override("font_size", 13)
+    hud.add_child(kingdom_label)
+
     var hint := Label.new()
     hint.text = "WASD / tombol arah untuk bergerak"
-    hint.position = Vector2(16, 132)
+    hint.position = Vector2(16, 188)
     hint.add_theme_color_override("font_color", Color.WHITE)
     hud.add_child(hint)
     _add_touch_controls()
@@ -177,7 +189,8 @@ func _save_world() -> void:
         "player_position": [player.position.x, player.position.y],
         "time": TimeManager.get_state(),
         "citizens": citizen_data,
-        "relationships": RelationshipManager.get_save_data()
+        "relationships": RelationshipManager.get_save_data(),
+        "kingdom": KingdomManager.get_save_data()
     })
 
 func _notification(what: int) -> void:
