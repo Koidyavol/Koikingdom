@@ -19,6 +19,9 @@ var parent_ids: Array = []
 var married_day := 0
 var last_age_day := 1
 var kingdom_role := "Citizen"
+var adventurer_level := 1
+var adventurer_experience := 0
+var expedition_count := 0
 
 var speed := 34.0
 var wander_target := Vector2.ZERO
@@ -41,6 +44,10 @@ func setup(data: Dictionary) -> void:
     social = clampf(float(data.get("social", 75.0)), 0.0, 100.0)
     partner_id = str(data.get("partner_id", ""))
     relationship_status = str(data.get("relationship_status", "Single"))
+    kingdom_role = str(data.get("kingdom_role", "Guild Adventurer" if job == "Adventurer" else "Citizen"))
+    adventurer_level = maxi(1, int(data.get("adventurer_level", 1)))
+    adventurer_experience = maxi(0, int(data.get("adventurer_experience", 0)))
+    expedition_count = maxi(0, int(data.get("expedition_count", 0)))
     married_day = int(data.get("married_day", 0))
     last_age_day = int(data.get("last_age_day", TimeManager.day))
     parent_ids = data.get("parent_ids", []).duplicate()
@@ -84,6 +91,8 @@ func _choose_activity(force: bool) -> void:
     var hour := TimeManager.hour
     if energy < 18.0 or hour >= 22 or hour < 6:
         current_activity = "Sleeping"
+    elif job == "Adventurer" and hour >= 8 and hour < 17:
+        current_activity = "Exploring"
     elif age < 7:
         current_activity = "Playing"
     elif hunger < 28.0 or hour == 12:
@@ -110,11 +119,13 @@ func _choose_target() -> void:
                 "Blacksmith": center = Vector2(520, 250)
                 "Healer": center = Vector2(890, 390)
                 "Fisher": center = Vector2(300, 300)
+                "Adventurer": center = Vector2(1030, 440)
                 _: center = Vector2(640, 360)
         "Eating": center = Vector2(600, 390)
         "Sleeping": center = Vector2(640, 360)
         "Playing": center = Vector2(640, 440)
         "Socializing": center = Vector2(690, 420)
+        "Exploring": center = Vector2(1040, 450)
         _: center = Vector2(640, 360)
     wander_target = center + Vector2(randf_range(-55, 55), randf_range(-28, 28))
 
@@ -126,6 +137,8 @@ func get_profile() -> Dictionary:
         "partner_id": partner_id, "relationship_status": relationship_status, "friends": friends,
         "parent_ids": parent_ids, "married_day": married_day, "last_age_day": last_age_day,
         "kingdom_role": kingdom_role,
+        "adventurer_level": adventurer_level, "adventurer_experience": adventurer_experience,
+        "expedition_count": expedition_count,
         "energy": roundi(energy), "social": roundi(social)
     }
 
