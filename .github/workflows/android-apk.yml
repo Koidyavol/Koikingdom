@@ -1,0 +1,29 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-android:
+    name: Export Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Import project and export APK with Godot 4.4.1
+        uses: docker://barichello/godot-ci:4.4.1
+        with:
+          entrypoint: /bin/bash
+          args: -lc "godot --version && mkdir -p build && godot --headless --path . --editor --quit && godot --headless --path . --export-debug Android build/KoiKingdom.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KoiKingdom-Android-APK
+          path: build/KoiKingdom.apk
+          if-no-files-found: error
+          retention-days: 14
