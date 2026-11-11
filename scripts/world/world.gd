@@ -332,6 +332,20 @@ func _refresh_adventure_panel() -> void:
     _add_adventure_action(adventure_content, "Buat Pedang Besi (3 Bijih + 1 Kristal)", func(): _adventure_craft("Pedang Besi"))
     _add_adventure_action(adventure_content, "Buat Jubah Kulit (2 Bijih)", func(): _adventure_craft("Jubah Kulit"))
 
+    var guild_heading := Label.new()
+    guild_heading.text = AdventureManager.get_guild_summary()
+    adventure_content.add_child(guild_heading)
+    for quest in AdventureManager.guild_quests:
+        var quest_label := Label.new()
+        quest_label.text = "%s: %d/%d%s" % [str(quest.title), int(quest.progress), int(quest.target), " (selesai)" if bool(quest.completed) else (" (aktif)" if bool(quest.accepted) else "")]
+        quest_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        adventure_content.add_child(quest_label)
+        var quest_id := str(quest.id)
+        if bool(quest.completed):
+            _add_adventure_action(adventure_content, "Ambil hadiah: " + str(quest.title), func(): _adventure_claim_quest(quest_id))
+        elif not bool(quest.accepted):
+            _add_adventure_action(adventure_content, "Ambil quest: " + str(quest.title), func(): _adventure_accept_quest(quest_id))
+
     var skill_heading := Label.new()
     skill_heading.text = "SKILL (Poin: %d)" % AdventureManager.skill_points
     adventure_content.add_child(skill_heading)
@@ -367,6 +381,14 @@ func _add_adventure_action(parent: VBoxContainer, caption: String, action: Calla
     button.text = caption
     parent.add_child(button)
     button.pressed.connect(action)
+
+func _adventure_accept_quest(quest_id: String) -> void:
+    AdventureManager.accept_guild_quest(quest_id)
+    _refresh_adventure_panel()
+
+func _adventure_claim_quest(quest_id: String) -> void:
+    AdventureManager.claim_guild_quest(quest_id)
+    _refresh_adventure_panel()
 
 func _adventure_enter() -> void:
     AdventureManager.enter_dungeon()
