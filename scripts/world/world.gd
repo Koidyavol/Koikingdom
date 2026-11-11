@@ -93,8 +93,8 @@ func _simulate_family_day() -> void:
     _last_family_day = TimeManager.day
     var births := RelationshipManager.process_family_day(citizens, TimeManager.day)
     KingdomManager.process_day(citizens, TimeManager.day)
-    if is_instance_valid(kingdom_label):
-        kingdom_label.text = KingdomManager.get_summary() + "\n" + KingdomManager.get_diplomacy_summary()
+    _refresh_kingdom_hud()
+    _refresh_diplomacy_panel()
     for child_data in births:
         if citizens.size() >= 32:
             break
@@ -265,7 +265,7 @@ func _add_tax_button(parent: HBoxContainer, caption: String, rate: float) -> voi
 
 func _refresh_kingdom_hud() -> void:
     if is_instance_valid(kingdom_label):
-        kingdom_label.text = KingdomManager.get_summary() + "\\n" + KingdomManager.get_diplomacy_summary()
+        kingdom_label.text = KingdomManager.get_summary() + "\n" + KingdomManager.get_diplomacy_summary()
 
 func _add_touch_controls() -> void:
     var base := Control.new()
