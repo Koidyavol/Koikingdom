@@ -11,6 +11,9 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Basic needs: hunger, energy, and social
 - Tap a citizen to inspect their profile
 - Save/load for player position, world clock, citizen identity, needs, and positions
+- Autonomous social meetings and persistent friendship bonds
+- Adult male/female citizens can become partners and later marry
+- Citizen profiles show relationship status and friend count
 
 ## Run
 1. Open this repository in Godot 4.3 or newer.
