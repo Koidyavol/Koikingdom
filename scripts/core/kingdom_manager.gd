@@ -13,9 +13,11 @@ var imperial_knight_ids: Array[String] = []
 var garrison_count := 0
 var defense_rating := 0
 var military_morale: float = 75.0
+var foreign_kingdoms: Array[Dictionary] = []
 var last_processed_day := 0
 
 func process_day(citizens: Array, current_day: int) -> void:
+    _ensure_foreign_kingdoms()
     if current_day <= last_processed_day:
         assign_government(citizens)
         return
@@ -39,6 +41,7 @@ func process_day(citizens: Array, current_day: int) -> void:
         food += farmers * 4 - population * 2
         var taxable_workers := farmers + merchants + workers
         treasury += 3 + int(float(taxable_workers) * 2.0 * tax_rate * 10.0)
+        _process_diplomacy_day(current_day - elapsed + _day + 1)
         var upkeep := garrison_count + imperial_knight_ids.size() * 2
         if treasury >= upkeep:
             treasury -= upkeep
@@ -123,6 +126,82 @@ func _oldest_by_gender(citizens: Array, wanted_gender: String):
             selected = citizen
     return selected
 
+func _ensure_foreign_kingdoms() -> void:
+    if not foreign_kingdoms.is_empty():
+        return
+    foreign_kingdoms = [
+        {"id": "sakura", "name": "Sakura", "relation": 20, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 180, "food": 150},
+        {"id": "tsukiyo", "name": "Tsukiyo", "relation": 5, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 220, "food": 130},
+        {"id": "akatsuki", "name": "Akatsuki", "relation": -10, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 160, "food": 190}
+    ]
+
+func _process_diplomacy_day(day_number: int) -> void:
+    if day_number <= 0:
+        return
+    for kingdom in foreign_kingdoms:
+        if day_number % 15 == 0:
+            kingdom["relation"] = clampi(int(kingdom.get("relation", 0)) + randi_range(-2, 2), -100, 100)
+        var relation := int(kingdom.get("relation", 0))
+        var trade_active := bool(kingdom.get("trade_active", false))
+        if trade_active:
+            kingdom["trade_days"] = int(kingdom.get("trade_days", 0)) + 1
+            treasury += 2
+            food += 1
+            if relation < -35:
+                kingdom["trade_active"] = false
+                kingdom["trade_days"] = 0
+        kingdom["status"] = "Friendly" if relation >= 60 else ("Tense" if relation <= -40 else "Neutral")
+
+func propose_trade(kingdom_id: String) -> bool:
+    for index in range(foreign_kingdoms.size()):
+        var kingdom: Dictionary = foreign_kingdoms[index]
+        if str(kingdom.get("id", "")) != kingdom_id:
+            continue
+        if int(kingdom.get("relation", 0)) < 30 or bool(kingdom.get("trade_active", false)):
+            return false
+        kingdom["trade_active"] = true
+        kingdom["trade_days"] = 0
+        foreign_kingdoms[index] = kingdom
+        return true
+    return false
+
+func improve_relations(kingdom_id: String) -> bool:
+    if treasury < 25:
+        return false
+    for index in range(foreign_kingdoms.size()):
+        var kingdom: Dictionary = foreign_kingdoms[index]
+        if str(kingdom.get("id", "")) != kingdom_id:
+            continue
+        treasury -= 25
+        kingdom["relation"] = clampi(int(kingdom.get("relation", 0)) + 10, -100, 100)
+        foreign_kingdoms[index] = kingdom
+        return true
+    return false
+
+func end_trade(kingdom_id: String) -> bool:
+    for index in range(foreign_kingdoms.size()):
+        var kingdom: Dictionary = foreign_kingdoms[index]
+        if str(kingdom.get("id", "")) != kingdom_id:
+            continue
+        kingdom["trade_active"] = false
+        kingdom["trade_days"] = 0
+        foreign_kingdoms[index] = kingdom
+        return true
+    return false
+
+func get_diplomacy_summary() -> String:
+    _ensure_foreign_kingdoms()
+    var parts: PackedStringArray = []
+    for kingdom in foreign_kingdoms:
+        var trade_text := " | Dagang" if bool(kingdom.get("trade_active", false)) else ""
+        parts.append("%s: %d (%s)%s" % [
+            str(kingdom.get("name", "Unknown")),
+            int(kingdom.get("relation", 0)),
+            str(kingdom.get("status", "Neutral")),
+            trade_text
+        ])
+    return "Diplomasi: " + "  •  ".join(parts)
+
 func get_role(citizen_id: String) -> String:
     if citizen_id == king_id and not king_id.is_empty():
         return "King"
@@ -149,7 +228,8 @@ func get_save_data() -> Dictionary:
         "king_id": king_id, "queen_id": queen_id, "heir_id": heir_id,
         "council_ids": council_ids, "imperial_knight_ids": imperial_knight_ids,
         "garrison_count": garrison_count, "defense_rating": defense_rating,
-        "military_morale": military_morale, "last_processed_day": last_processed_day
+        "military_morale": military_morale, "foreign_kingdoms": foreign_kingdoms.duplicate(true),
+        "last_processed_day": last_processed_day
     }
 
 func apply_state(state: Dictionary) -> void:
@@ -170,6 +250,11 @@ func apply_state(state: Dictionary) -> void:
     garrison_count = maxi(0, int(state.get("garrison_count", 0)))
     defense_rating = maxi(0, int(state.get("defense_rating", 0)))
     military_morale = clampf(float(state.get("military_morale", 75.0)), 0.0, 100.0)
+    foreign_kingdoms.clear()
+    for kingdom in state.get("foreign_kingdoms", []):
+        if kingdom is Dictionary:
+            foreign_kingdoms.append(kingdom.duplicate(true))
+    _ensure_foreign_kingdoms()
     last_processed_day = int(state.get("last_processed_day", 0))
 
 func reset() -> void:
@@ -186,4 +271,6 @@ func reset() -> void:
     garrison_count = 0
     defense_rating = 0
     military_morale = 75.0
+    foreign_kingdoms.clear()
+    _ensure_foreign_kingdoms()
     last_processed_day = 0
