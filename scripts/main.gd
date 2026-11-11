@@ -545,7 +545,19 @@ func _set_city_player_frame(direction: String, frame_index: int) -> void:
 	var frame_rect := Rect2(29, 18, 133, 171)
 	match direction:
 		"up":
-			frame_rect = Rect2(37, 198, 118, 183)
+			var back_frames := [
+				Rect2(22, 789, 109, 178), Rect2(146, 789, 109, 178),
+				Rect2(269, 789, 109, 178), Rect2(393, 789, 109, 178),
+				Rect2(516, 789, 109, 178), Rect2(639, 789, 109, 178)
+			]
+			frame_rect = back_frames[frame_index % back_frames.size()]
+		"down":
+			var front_frames := [
+				Rect2(19, 592, 116, 194), Rect2(142, 592, 117, 194),
+				Rect2(265, 592, 116, 194), Rect2(390, 592, 115, 194),
+				Rect2(512, 592, 116, 194), Rect2(637, 592, 115, 194)
+			]
+			frame_rect = front_frames[frame_index % front_frames.size()]
 		"left":
 			var left_frames := [
 				Rect2(31, 989, 105, 154), Rect2(153, 989, 105, 154),
@@ -560,8 +572,6 @@ func _set_city_player_frame(direction: String, frame_index: int) -> void:
 				Rect2(1278, 989, 105, 154), Rect2(1401, 989, 105, 154)
 			]
 			frame_rect = right_frames[frame_index % right_frames.size()]
-		"down":
-			frame_rect = Rect2(29, 18, 133, 171)
 	var atlas := AtlasTexture.new()
 	atlas.atlas = atlas_texture
 	atlas.region = frame_rect
