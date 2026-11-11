@@ -21,6 +21,8 @@ var city_anim_time := 0.0
 var city_walk_frame := 0
 var city_walk_direction := "down"
 var city_world: Control
+var map_dragging := false
+var map_drag_last := Vector2.ZERO
 
 const NPC_DATA := {
 	"name": "Aiko Nakamura",
@@ -353,10 +355,13 @@ func _build_map_page() -> void:
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	scroll.gui_input.connect(_on_map_scroll_input.bind(scroll))
 	page_host.add_child(scroll)
 
 	var map_root := Control.new()
 	map_root.custom_minimum_size = Vector2(1536, 1536)
+	map_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	scroll.add_child(map_root)
 
 	var map_image := TextureRect.new()
@@ -393,6 +398,35 @@ func _build_map_page() -> void:
 
 	scroll.set_deferred("scroll_horizontal", 408)
 	scroll.set_deferred("scroll_vertical", 408)
+
+func _on_map_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			map_dragging = true
+			map_drag_last = event.position
+		else:
+			map_dragging = false
+		scroll.accept_event()
+	elif event is InputEventScreenDrag:
+		if map_dragging:
+			var delta := event.position - map_drag_last
+			scroll.scroll_horizontal = clampi(scroll.scroll_horizontal - int(delta.x), 0, maxi(0, int(scroll.get_h_scroll_bar().max_value - scroll.get_h_scroll_bar().page)))
+			scroll.scroll_vertical = clampi(scroll.scroll_vertical - int(delta.y), 0, maxi(0, int(scroll.get_v_scroll_bar().max_value - scroll.get_v_scroll_bar().page)))
+			map_drag_last = event.position
+		scroll.accept_event()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			map_dragging = true
+			map_drag_last = event.position
+		else:
+			map_dragging = false
+		scroll.accept_event()
+	elif event is InputEventMouseMotion and map_dragging:
+		var delta := event.position - map_drag_last
+		scroll.scroll_horizontal = maxi(0, scroll.scroll_horizontal - int(delta.x))
+		scroll.scroll_vertical = maxi(0, scroll.scroll_vertical - int(delta.y))
+		map_drag_last = event.position
+		scroll.accept_event()
 
 func _open_city_center() -> void:
 	for child in page_host.get_children():
