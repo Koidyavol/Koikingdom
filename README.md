@@ -27,6 +27,7 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Three neighboring kingdoms have autonomous diplomatic relations and trade status
 - Relations drift over time; trade agreements generate daily gold and food
 - Diplomacy actions support improving relations, proposing trade, and ending trade
+- In-game diplomacy panel exposes gift, trade, and tax-policy controls on touch devices
 
 ## Run
 1. Open this repository in Godot 4.3 or newer.
