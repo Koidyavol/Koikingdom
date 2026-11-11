@@ -9,6 +9,7 @@ config/description="Autonomous isometric kingdom life simulation."
 [autoload]
 TimeManager="*res://scripts/autoload/time_manager.gd"
 SaveManager="*res://scripts/core/save_manager.gd"
+RelationshipManager="*res://scripts/core/relationship_manager.gd"
 
 [display]
 window/size/viewport_width=1280
