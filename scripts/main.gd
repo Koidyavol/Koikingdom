@@ -348,7 +348,7 @@ func _build_placeholder_page(parent: VBoxContainer, page: String) -> void:
 
 
 const WORLD_MAP_PATH := "res://assets/map/Gemini_Generated_Image_ghfufvghfufvghfu.jpeg"
-const WORLD_TILESET_PATH := "res://assets/tileset/IMG_20261111_185922.jpg"
+const WORLD_TILESET_PATH := "res://assets/tileset/world_tileset.png"
 
 func _build_map_page() -> void:
 	var scroll := ScrollContainer.new()
