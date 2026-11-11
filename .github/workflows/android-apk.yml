@@ -47,6 +47,34 @@ jobs:
           test -d "$ANDROID_HOME"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+          # Godot 4.3 defaults to Android Target SDK 34. The image only had
+          # Build Tools 33.0.2, which makes the Android export preset invalid.
+          if command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="$(command -v sdkmanager)"
+          else
+            SDKMANAGER="$(find "$ANDROID_HOME" -type f -name sdkmanager -perm -u+x -print -quit)"
+          fi
+          if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
+            echo "Android SDK Manager was not found under $ANDROID_HOME."
+            exit 1
+          fi
+
+          # Accept SDK licenses and install the exact SDK/build-tools required
+          # by Godot 4.3 instead of relying on whatever the Docker image ships.
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+
+          test -f "$ANDROID_HOME/platforms/android-34/android.jar"
+          test -x "$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          echo "Installed Android SDK platforms:"
+          ls -1 "$ANDROID_HOME/platforms"
+          echo "Installed Android Build Tools:"
+          ls -1 "$ANDROID_HOME/build-tools"
+
           godot --version
           java -version
 
