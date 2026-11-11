@@ -14,6 +14,7 @@ var profile_label: Label
 var player: CharacterBody2D
 var citizens: Array[Node] = []
 var social_simulation_timer := 0.0
+var _last_family_day := 0
 
 func _ready() -> void:
     randomize()
@@ -35,11 +36,14 @@ func _ready() -> void:
 
     RelationshipManager.apply_state(saved.get("relationships", {}))
     _spawn_npcs(saved.get("citizens", []))
+    _last_family_day = TimeManager.day
     _build_hud()
     queue_redraw()
 
 func _process(delta: float) -> void:
     RelationshipManager.simulate(citizens, delta)
+    if TimeManager.day != _last_family_day:
+        _simulate_family_day()
     if is_instance_valid(clock_label):
         clock_label.text = TimeManager.formatted_time()
 
@@ -76,6 +80,19 @@ func _spawn_npcs(saved_citizens: Array) -> void:
         npc.setup(data)
         npc.selected.connect(_show_citizen_profile)
         citizens.append(npc)
+
+
+func _simulate_family_day() -> void:
+    _last_family_day = TimeManager.day
+    var births := RelationshipManager.process_family_day(citizens, TimeManager.day)
+    for child_data in births:
+        if citizens.size() >= 32:
+            break
+        var child = NPC_SCRIPT.new()
+        add_child(child)
+        child.setup(child_data)
+        child.selected.connect(_show_citizen_profile)
+        citizens.append(child)
 
 func _make_citizen(index: int) -> Dictionary:
     var gender := "Female" if randi() % 2 == 0 else "Male"
