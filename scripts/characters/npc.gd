@@ -12,6 +12,9 @@ var personality := "Kind"
 var hunger := 100.0
 var energy := 100.0
 var social := 75.0
+var partner_id := ""
+var relationship_status := "Single"
+var friends: Array[String] = []
 
 var speed := 34.0
 var wander_target := Vector2.ZERO
@@ -32,6 +35,11 @@ func setup(data: Dictionary) -> void:
     hunger = clampf(float(data.get("hunger", 100.0)), 0.0, 100.0)
     energy = clampf(float(data.get("energy", 100.0)), 0.0, 100.0)
     social = clampf(float(data.get("social", 75.0)), 0.0, 100.0)
+    partner_id = str(data.get("partner_id", ""))
+    relationship_status = str(data.get("relationship_status", "Single"))
+    friends.clear()
+    for friend_id in data.get("friends", []):
+        friends.append(str(friend_id))
     if data.has("position") and data.position is Array and data.position.size() >= 2:
         position = Vector2(float(data.position[0]), float(data.position[1]))
     _choose_activity(true)
@@ -105,6 +113,7 @@ func get_profile() -> Dictionary:
         "id": npc_id, "name": npc_name, "race": race, "gender": gender,
         "age": age, "job": job, "personality": personality,
         "activity": current_activity, "hunger": roundi(hunger),
+        "partner_id": partner_id, "relationship_status": relationship_status, "friends": friends,
         "energy": roundi(energy), "social": roundi(social)
     }
 
