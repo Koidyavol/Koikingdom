@@ -4,7 +4,7 @@ const NPC_SCRIPT := preload("res://scripts/characters/npc.gd")
 const STARTING_NPC_COUNT := 8
 const FIRST_NAMES := ["Aoi", "Ren", "Hana", "Yuki", "Akira", "Mei", "Haruto", "Sora", "Rin", "Kaito", "Emi", "Daichi"]
 const RACES := ["Human", "Elf", "Beastkin", "Dwarf"]
-const JOBS := ["Farmer", "Merchant", "Guard", "Student", "Blacksmith", "Healer", "Fisher"]
+const JOBS := ["Farmer", "Merchant", "Guard", "Student", "Blacksmith", "Healer", "Fisher", "Adventurer"]
 const PERSONALITIES := ["Kind", "Cheerful", "Shy", "Hardworking", "Curious", "Calm"]
 
 var camera: Camera2D
@@ -46,6 +46,7 @@ func _ready() -> void:
     AdventureManager.apply_state(saved.get("adventure", {}))
     _spawn_npcs(saved.get("citizens", []))
     KingdomManager.process_day(citizens, TimeManager.day)
+    AdventureManager.process_guild_day(TimeManager.day, citizens)
     _last_family_day = TimeManager.day
     _build_hud()
     queue_redraw()
@@ -117,7 +118,7 @@ func _make_citizen(index: int) -> Dictionary:
         "race": RACES[randi_range(0, RACES.size() - 1)],
         "gender": gender,
         "age": randi_range(18, 60),
-        "job": JOBS[randi_range(0, JOBS.size() - 1)],
+        "job": "Adventurer" if index >= 6 else JOBS[randi_range(0, JOBS.size() - 2)],
         "personality": PERSONALITIES[randi_range(0, PERSONALITIES.size() - 1)],
         "hunger": randf_range(65.0, 100.0),
         "energy": randf_range(65.0, 100.0),
