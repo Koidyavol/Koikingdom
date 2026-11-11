@@ -5,9 +5,13 @@ const PANEL := Color("#1c2b40")
 const ACCENT := Color("#d8b878")
 const TEXT_MAIN := Color("#f3f1eb")
 const TEXT_MUTED := Color("#aab6c6")
+const NPC_IMAGE_PATH := "res://assets/character/npc/aiko/character.png"
+const NPC_PORTRAIT_PATH := "res://assets/character/npc/aiko/portrait.png"
 
 var page_host: Control
 var current_page := "Home"
+var chat_log: VBoxContainer
+var chat_input: LineEdit
 
 const NPC_DATA := {
 	"name": "Aiko Nakamura",
@@ -148,6 +152,16 @@ func _build_npc_page(parent: VBoxContainer) -> void:
 	details.add_theme_constant_override("separation", 9)
 	card.add_child(details)
 
+	var npc_image := TextureRect.new()
+	npc_image.custom_minimum_size = Vector2(0, 230)
+	npc_image.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	npc_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if ResourceLoader.exists(NPC_IMAGE_PATH):
+		npc_image.texture = load(NPC_IMAGE_PATH)
+	else:
+		npc_image.texture = null
+	details.add_child(npc_image)
+
 	var name_label := Label.new()
 	name_label.text = NPC_DATA["name"]
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -169,11 +183,110 @@ func _build_npc_page(parent: VBoxContainer) -> void:
 		info.add_theme_color_override("font_color", TEXT_MUTED)
 		details.add_child(info)
 
-	var portrait_hint := Label.new()
-	portrait_hint.text = "Gambar NPC belum ditambahkan"
-	portrait_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	portrait_hint.add_theme_color_override("font_color", TEXT_MUTED)
-	parent.add_child(portrait_hint)
+	var talk_button := Button.new()
+	talk_button.text = "Bicara"
+	talk_button.custom_minimum_size = Vector2(0, 48)
+	talk_button.pressed.connect(_open_aiko_chat)
+	parent.add_child(talk_button)
+
+func _open_aiko_chat() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_host.add_child(center)
+
+	var chat_page := VBoxContainer.new()
+	chat_page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chat_page.add_theme_constant_override("separation", 12)
+	center.add_child(chat_page)
+
+	var title := Label.new()
+	title.text = "Percakapan dengan Aiko"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 22)
+	chat_page.add_child(title)
+
+	var speech_panel := PanelContainer.new()
+	speech_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	speech_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var speech_style := StyleBoxFlat.new()
+	speech_style.bg_color = PANEL
+	speech_style.set_corner_radius_all(14)
+	speech_panel.add_theme_stylebox_override("panel", speech_style)
+	chat_page.add_child(speech_panel)
+
+	var speech_layout := VBoxContainer.new()
+	speech_layout.add_theme_constant_override("separation", 10)
+	speech_panel.add_child(speech_layout)
+
+	var portrait_row := HBoxContainer.new()
+	portrait_row.alignment = BoxContainer.ALIGNMENT_END
+	speech_layout.add_child(portrait_row)
+
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = Vector2(104, 104)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	if ResourceLoader.exists(NPC_PORTRAIT_PATH):
+		portrait.texture = load(NPC_PORTRAIT_PATH)
+	portrait_row.add_child(portrait)
+
+	chat_log = VBoxContainer.new()
+	chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	speech_layout.add_child(chat_log)
+	_add_chat_line("Aiko", "こんにちは！ Aku Aiko. Senang bertemu denganmu!")
+
+	var input_row := HBoxContainer.new()
+	chat_page.add_child(input_row)
+
+	chat_input = LineEdit.new()
+	chat_input.placeholder_text = "Tulis pesan..."
+	chat_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chat_input.text_submitted.connect(_send_chat_message)
+	input_row.add_child(chat_input)
+
+	var send_button := Button.new()
+	send_button.text = "Kirim"
+	send_button.pressed.connect(_send_chat_message.bind(chat_input.text))
+	input_row.add_child(send_button)
+
+	var back_button := Button.new()
+	back_button.text = "Kembali"
+	back_button.pressed.connect(_show_page.bind("Karakter"))
+	chat_page.add_child(back_button)
+
+func _send_chat_message(message: String = "") -> void:
+	var text := message.strip_edges()
+	if text.is_empty() and chat_input != null:
+		text = chat_input.text.strip_edges()
+	if text.is_empty():
+		return
+	_add_chat_line("Kamu", text)
+	if chat_input != null:
+		chat_input.clear()
+
+	var lower := text.to_lower()
+	var reply := "そうなんだ！ Ceritakan lagi, aku ingin mendengarnya."
+	if lower.contains("halo") or lower.contains("hai") or lower.contains("こんにちは"):
+		reply = "Halo juga! Bagaimana harimu?"
+	elif lower.contains("nama"):
+		reply = "Namaku Aiko Nakamura. Kamu boleh memanggilku Aiko!"
+	elif lower.contains("apa kabar") or lower.contains("kabar"):
+		reply = "Aku baik, terima kasih sudah bertanya!"
+	elif lower.contains("terima kasih") or lower.contains("makasih"):
+		reply = "どういたしまして！ Sama-sama!"
+	_add_chat_line("Aiko", reply)
+
+func _add_chat_line(speaker: String, message: String) -> void:
+	var line := Label.new()
+	line.text = "%s: %s" % [speaker, message]
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.add_theme_color_override("font_color", TEXT_MAIN if speaker == "Aiko" else ACCENT)
+	chat_log.add_child(line)
 
 func _build_placeholder_page(parent: VBoxContainer, page: String) -> void:
 	var title := Label.new()

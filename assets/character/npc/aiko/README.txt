@@ -1,0 +1,1 @@
+Upload gambar karakter Aiko dengan nama character.png di folder ini.
