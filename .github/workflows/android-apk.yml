@@ -112,7 +112,6 @@ jobs:
           mkdir -p build
           godot --headless --verbose --path . --export-debug "Android" build/KoiKingdom.apk
           test -s build/KoiKingdom.apk
-          file build/KoiKingdom.apk
           sha256sum build/KoiKingdom.apk
 
       - name: Upload installable APK
