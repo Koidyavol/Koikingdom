@@ -149,9 +149,9 @@ func _ensure_foreign_kingdoms() -> void:
     if not foreign_kingdoms.is_empty():
         return
     foreign_kingdoms = [
-        {"id": "sakura", "name": "Sakura", "relation": 20, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 180, "food": 150},
-        {"id": "tsukiyo", "name": "Tsukiyo", "relation": 5, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 220, "food": 130},
-        {"id": "akatsuki", "name": "Akatsuki", "relation": -10, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 160, "food": 190}
+        {"id": "sakura", "name": "Sakura", "relation": 20, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 180, "food": 150, "population": 120, "prosperity": 62},
+        {"id": "tsukiyo", "name": "Tsukiyo", "relation": 5, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 220, "food": 130, "population": 105, "prosperity": 58},
+        {"id": "akatsuki", "name": "Akatsuki", "relation": -10, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 160, "food": 190, "population": 135, "prosperity": 54}
     ]
 
 func _process_diplomacy_day(day_number: int) -> void:
@@ -257,7 +257,7 @@ func get_diplomacy_summary() -> String:
         parts.append("%s: %d (%s)%s" % [
             str(kingdom.get("name", "Unknown")),
             int(kingdom.get("relation", 0)),
-            str(kingdom.get("status", "Neutral")),
+            str(kingdom.get("status", "Neutral")) + " | Pop " + str(kingdom.get("population", 100)) + " | Makmur " + str(roundi(float(kingdom.get("prosperity", 50.0)))) + "%",
             trade_text
         ])
     return "Diplomasi: " + "  •  ".join(parts)
@@ -289,7 +289,8 @@ func get_save_data() -> Dictionary:
         "council_ids": council_ids, "imperial_knight_ids": imperial_knight_ids,
         "garrison_count": garrison_count, "defense_rating": defense_rating,
         "military_morale": military_morale, "foreign_kingdoms": foreign_kingdoms.duplicate(true),
-        "last_processed_day": last_processed_day
+        "last_processed_day": last_processed_day, "world_history": world_history,
+        "world_day": world_day
     }
 
 func apply_state(state: Dictionary) -> void:
@@ -317,6 +318,10 @@ func apply_state(state: Dictionary) -> void:
             foreign_kingdoms.append(kingdom.duplicate(true))
     _ensure_foreign_kingdoms()
     last_processed_day = int(state.get("last_processed_day", 0))
+    world_history.clear()
+    for event_text in state.get("world_history", []):
+        world_history.append(str(event_text))
+    world_day = maxi(1, int(state.get("world_day", 1)))
 
 func reset() -> void:
     treasury = 250
@@ -336,3 +341,5 @@ func reset() -> void:
     foreign_kingdoms.clear()
     _ensure_foreign_kingdoms()
     last_processed_day = 0
+    world_history.clear()
+    world_day = 1
