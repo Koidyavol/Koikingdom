@@ -12,6 +12,9 @@ var hud: CanvasLayer
 var clock_label: Label
 var profile_label: Label
 var kingdom_label: Label
+var diplomacy_panel: PanelContainer
+var diplomacy_content: VBoxContainer
+var diplomacy_button: Button
 var player: CharacterBody2D
 var citizens: Array[Node] = []
 var social_simulation_timer := 0.0
@@ -157,7 +160,112 @@ func _build_hud() -> void:
     hint.position = Vector2(16, 250)
     hint.add_theme_color_override("font_color", Color.WHITE)
     hud.add_child(hint)
+    _add_diplomacy_controls()
     _add_touch_controls()
+
+func _add_diplomacy_controls() -> void:
+    diplomacy_button = Button.new()
+    diplomacy_button.text = "Diplomasi"
+    diplomacy_button.position = Vector2(1080, 18)
+    diplomacy_button.size = Vector2(170, 48)
+    hud.add_child(diplomacy_button)
+    diplomacy_button.pressed.connect(_toggle_diplomacy_panel)
+
+    diplomacy_panel = PanelContainer.new()
+    diplomacy_panel.position = Vector2(820, 76)
+    diplomacy_panel.custom_minimum_size = Vector2(420, 0)
+    diplomacy_panel.visible = false
+    hud.add_child(diplomacy_panel)
+
+    diplomacy_content = VBoxContainer.new()
+    diplomacy_content.add_theme_constant_override("separation", 8)
+    diplomacy_panel.add_child(diplomacy_content)
+    _refresh_diplomacy_panel()
+
+func _toggle_diplomacy_panel() -> void:
+    diplomacy_panel.visible = not diplomacy_panel.visible
+    if diplomacy_panel.visible:
+        _refresh_diplomacy_panel()
+
+func _refresh_diplomacy_panel() -> void:
+    if not is_instance_valid(diplomacy_content):
+        return
+    for child in diplomacy_content.get_children():
+        child.queue_free()
+    var heading := Label.new()
+    heading.text = "DIPLOMASI KERAJAAN"
+    heading.add_theme_font_size_override("font_size", 18)
+    diplomacy_content.add_child(heading)
+
+    var tax_heading := Label.new()
+    tax_heading.text = "Kebijakan pajak: %s (%d%%)" % [KingdomManager.tax_policy, roundi(KingdomManager.tax_rate * 100.0)]
+    diplomacy_content.add_child(tax_heading)
+    var tax_row := HBoxContainer.new()
+    diplomacy_content.add_child(tax_row)
+    _add_tax_button(tax_row, "Rendah 5%", 0.05)
+    _add_tax_button(tax_row, "Normal 10%", 0.10)
+    _add_tax_button(tax_row, "Tinggi 20%", 0.20)
+
+    var treasury_label := Label.new()
+    treasury_label.text = "Emas kerajaan: %d (hadiah diplomasi 25 emas)" % KingdomManager.treasury
+    diplomacy_content.add_child(treasury_label)
+
+    for kingdom in KingdomManager.foreign_kingdoms:
+        var kingdom_id := str(kingdom.get("id", ""))
+        var kingdom_name := str(kingdom.get("name", "Kerajaan"))
+        var relation := int(kingdom.get("relation", 0))
+        var is_trading := bool(kingdom.get("trade_active", false))
+        var info := Label.new()
+        info.text = "%s | Hubungan: %d | %s%s" % [
+            kingdom_name, relation, str(kingdom.get("status", "Neutral")),
+            " | Dagang aktif" if is_trading else ""
+        ]
+        info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        diplomacy_content.add_child(info)
+
+        var actions := HBoxContainer.new()
+        diplomacy_content.add_child(actions)
+        var improve := Button.new()
+        improve.text = "Kirim hadiah (25)"
+        improve.disabled = KingdomManager.treasury < 25 or relation >= 100
+        actions.add_child(improve)
+        improve.pressed.connect(func():
+            KingdomManager.improve_relations(kingdom_id)
+            _refresh_diplomacy_panel()
+            _refresh_kingdom_hud()
+        )
+
+        var trade := Button.new()
+        trade.text = "Akhiri dagang" if is_trading else "Ajukan dagang"
+        trade.disabled = (not is_trading and relation < 30)
+        actions.add_child(trade)
+        trade.pressed.connect(func():
+            if is_trading:
+                KingdomManager.end_trade(kingdom_id)
+            else:
+                KingdomManager.propose_trade(kingdom_id)
+            _refresh_diplomacy_panel()
+            _refresh_kingdom_hud()
+        )
+
+    var close_button := Button.new()
+    close_button.text = "Tutup"
+    diplomacy_content.add_child(close_button)
+    close_button.pressed.connect(func(): diplomacy_panel.visible = false)
+
+func _add_tax_button(parent: HBoxContainer, caption: String, rate: float) -> void:
+    var button := Button.new()
+    button.text = caption
+    parent.add_child(button)
+    button.pressed.connect(func():
+        KingdomManager.set_tax_rate(rate)
+        _refresh_diplomacy_panel()
+        _refresh_kingdom_hud()
+    )
+
+func _refresh_kingdom_hud() -> void:
+    if is_instance_valid(kingdom_label):
+        kingdom_label.text = KingdomManager.get_summary() + "\\n" + KingdomManager.get_diplomacy_summary()
 
 func _add_touch_controls() -> void:
     var base := Control.new()
