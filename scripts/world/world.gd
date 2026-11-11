@@ -13,6 +13,7 @@ var clock_label: Label
 var profile_label: Label
 var player: CharacterBody2D
 var citizens: Array[Node] = []
+var social_simulation_timer := 0.0
 
 func _ready() -> void:
     randomize()
@@ -32,11 +33,13 @@ func _ready() -> void:
     player.add_child(camera)
     camera.make_current()
 
+    RelationshipManager.apply_state(saved.get("relationships", {}))
     _spawn_npcs(saved.get("citizens", []))
     _build_hud()
     queue_redraw()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+    RelationshipManager.simulate(citizens, delta)
     if is_instance_valid(clock_label):
         clock_label.text = TimeManager.formatted_time()
 
@@ -95,7 +98,7 @@ func _show_citizen_profile(profile: Dictionary) -> void:
         return
     profile_label.text = "%s  |  %s %s, %d\nPekerjaan: %s  |  Sifat: %s\nAktivitas: %s\nLapar %d%%  Energi %d%%  Sosial %d%%" % [
         profile.name, profile.gender, profile.race, profile.age, profile.job,
-        profile.personality, profile.activity, profile.hunger, profile.energy, profile.social
+        profile.personality, profile.activity, profile.relationship_status, profile.friends.size(), profile.hunger, profile.energy, profile.social
     ]
 
 func _build_hud() -> void:
@@ -154,7 +157,8 @@ func _save_world() -> void:
     SaveManager.save_game({
         "player_position": [player.position.x, player.position.y],
         "time": TimeManager.get_state(),
-        "citizens": citizen_data
+        "citizens": citizen_data,
+        "relationships": RelationshipManager.get_save_data()
     })
 
 func _notification(what: int) -> void:
