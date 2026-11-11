@@ -18,6 +18,9 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Children age one year per 365 in-game days and progress from Child to Student to adult work
 - Parent IDs, ages, child identities, and birth cooldowns persist in saves
 - Population is capped at 32 citizens in the current prototype
+- Basic kingdom government with an automatically selected King, Queen, Heir, and council
+- Daily treasury, food production/consumption, tax income, happiness, and stability simulation
+- Kingdom status and citizen royal/council roles appear in the world HUD and citizen profiles
 
 ## Run
 1. Open this repository in Godot 4.3 or newer.
@@ -29,6 +32,6 @@ Android export is not configured yet. The GitHub Actions workflow currently perf
 ## Roadmap
 1. Expand NPC identity and simulation
 2. Relationships, friendship, dating, family, and generations
-3. Kingdom roles, leadership, economy, and diplomacy
+3. Expand kingdom roles, leadership, economy, and diplomacy
 4. Combat, dungeons, crafting, and exploration
 5. Android export and performance testing
