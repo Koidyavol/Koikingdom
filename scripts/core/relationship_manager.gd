@@ -43,6 +43,10 @@ func _meet(first: Node, second: Node) -> void:
     if score >= 100 and first.partner_id == second.npc_id and second.partner_id == first.npc_id:
         first.relationship_status = "Married"
         second.relationship_status = "Married"
+        if first.married_day <= 0:
+            first.married_day = TimeManager.day
+        if second.married_day <= 0:
+            second.married_day = TimeManager.day
 
 func _affinity_gain(first: Node, second: Node) -> int:
     var gain := 2
