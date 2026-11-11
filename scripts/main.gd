@@ -409,9 +409,9 @@ func _on_map_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
 		scroll.accept_event()
 	elif event is InputEventScreenDrag:
 		if map_dragging:
-			var delta := event.position - map_drag_last
-			scroll.scroll_horizontal = clampi(scroll.scroll_horizontal - int(delta.x), 0, maxi(0, int(scroll.get_h_scroll_bar().max_value - scroll.get_h_scroll_bar().page)))
-			scroll.scroll_vertical = clampi(scroll.scroll_vertical - int(delta.y), 0, maxi(0, int(scroll.get_v_scroll_bar().max_value - scroll.get_v_scroll_bar().page)))
+			var drag_delta: Vector2 = event.position - map_drag_last
+			scroll.scroll_horizontal = clampi(scroll.scroll_horizontal - int(drag_delta.x), 0, maxi(0, int(scroll.get_h_scroll_bar().max_value - scroll.get_h_scroll_bar().page)))
+			scroll.scroll_vertical = clampi(scroll.scroll_vertical - int(drag_delta.y), 0, maxi(0, int(scroll.get_v_scroll_bar().max_value - scroll.get_v_scroll_bar().page)))
 			map_drag_last = event.position
 		scroll.accept_event()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -423,8 +423,8 @@ func _on_map_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
 		scroll.accept_event()
 	elif event is InputEventMouseMotion and map_dragging:
 		var delta := event.position - map_drag_last
-		scroll.scroll_horizontal = maxi(0, scroll.scroll_horizontal - int(delta.x))
-		scroll.scroll_vertical = maxi(0, scroll.scroll_vertical - int(delta.y))
+		scroll.scroll_horizontal = maxi(0, scroll.scroll_horizontal - int(drag_delta.x))
+		scroll.scroll_vertical = maxi(0, scroll.scroll_vertical - int(drag_delta.y))
 		map_drag_last = event.position
 		scroll.accept_event()
 
