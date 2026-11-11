@@ -13,7 +13,7 @@ jobs:
   build-android:
     name: Export Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,10 +26,20 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
-      - name: Set up Godot 4.4.1 and Android export templates
+      - name: Accept Android SDK licenses and install required packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+          test -d "$ANDROID_HOME/platforms/android-34"
+          test -d "$ANDROID_HOME/build-tools/34.0.0"
+
+      - name: Set up Godot 4.4.1 and export templates
         uses: chickensoft-games/setup-godot@v1
         with:
           version: 4.4.1
@@ -56,22 +66,30 @@ jobs:
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
-          test -f "$GITHUB_WORKSPACE/debug.keystore"
-          test -f "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
-          echo "Java: $JAVA_HOME"
-          echo "Android SDK: $ANDROID_HOME"
-          echo "Godot Android export template: present"
+          test -s "$GITHUB_WORKSPACE/debug.keystore"
+          test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
 
-      - name: Import project and export APK
+      - name: Import project and install Android build template
         shell: bash
         run: |
           set -euo pipefail
           godot --version
           godot --headless --editor --path . --quit
+          godot --headless --editor --path . --install-android-build-template --quit
+          test -f android/build.gradle
+          test -f android/settings.gradle
+          echo "Godot Android Gradle build template installed."
+
+      - name: Export and validate APK
+        shell: bash
+        run: |
+          set -euo pipefail
           godot --headless --path . --export-debug Android build/KoiKingdom.apk
           test -s build/KoiKingdom.apk
           file build/KoiKingdom.apk
           unzip -t build/KoiKingdom.apk
+          unzip -l build/KoiKingdom.apk | grep -q "AndroidManifest.xml"
+          echo "APK export and archive validation passed."
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
