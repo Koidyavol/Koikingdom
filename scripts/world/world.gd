@@ -15,6 +15,9 @@ var kingdom_label: Label
 var diplomacy_panel: PanelContainer
 var diplomacy_content: VBoxContainer
 var diplomacy_button: Button
+var adventure_panel: PanelContainer
+var adventure_content: VBoxContainer
+var adventure_button: Button
 var player: CharacterBody2D
 var citizens: Array[Node] = []
 var social_simulation_timer := 0.0
@@ -40,6 +43,7 @@ func _ready() -> void:
 
     RelationshipManager.apply_state(saved.get("relationships", {}))
     KingdomManager.apply_state(saved.get("kingdom", {}))
+    AdventureManager.apply_state(saved.get("adventure", {}))
     _spawn_npcs(saved.get("citizens", []))
     KingdomManager.process_day(citizens, TimeManager.day)
     _last_family_day = TimeManager.day
@@ -161,6 +165,7 @@ func _build_hud() -> void:
     hint.add_theme_color_override("font_color", Color.WHITE)
     hud.add_child(hint)
     _add_diplomacy_controls()
+    _add_adventure_controls()
     _add_touch_controls()
 
 func _add_diplomacy_controls() -> void:
@@ -267,6 +272,97 @@ func _refresh_kingdom_hud() -> void:
     if is_instance_valid(kingdom_label):
         kingdom_label.text = KingdomManager.get_summary() + "\n" + KingdomManager.get_diplomacy_summary()
 
+func _add_adventure_controls() -> void:
+    adventure_button = Button.new()
+    adventure_button.text = "Petualangan"
+    adventure_button.position = Vector2(1080, 76)
+    adventure_button.size = Vector2(170, 48)
+    hud.add_child(adventure_button)
+    adventure_button.pressed.connect(_toggle_adventure_panel)
+
+    adventure_panel = PanelContainer.new()
+    adventure_panel.position = Vector2(820, 134)
+    adventure_panel.custom_minimum_size = Vector2(420, 0)
+    adventure_panel.visible = false
+    hud.add_child(adventure_panel)
+
+    adventure_content = VBoxContainer.new()
+    adventure_content.add_theme_constant_override("separation", 8)
+    adventure_panel.add_child(adventure_content)
+    _refresh_adventure_panel()
+
+func _toggle_adventure_panel() -> void:
+    adventure_panel.visible = not adventure_panel.visible
+    if adventure_panel.visible:
+        _refresh_adventure_panel()
+
+func _refresh_adventure_panel() -> void:
+    if not is_instance_valid(adventure_content):
+        return
+    for child in adventure_content.get_children():
+        child.queue_free()
+    var title := Label.new()
+    title.text = "PETUALANGAN & DUNGEON"
+    title.add_theme_font_size_override("font_size", 18)
+    adventure_content.add_child(title)
+
+    var stats := Label.new()
+    stats.text = AdventureManager.get_summary()
+    stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    adventure_content.add_child(stats)
+
+    var equipment := Label.new()
+    equipment.text = "Senjata: %s | Armor: %s" % [AdventureManager.weapon_name, AdventureManager.armor_name]
+    equipment.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    adventure_content.add_child(equipment)
+
+    var inventory_label := Label.new()
+    inventory_label.text = AdventureManager.get_inventory_summary()
+    inventory_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    adventure_content.add_child(inventory_label)
+
+    var result := Label.new()
+    result.text = AdventureManager.last_result
+    result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    adventure_content.add_child(result)
+
+    if AdventureManager.dungeon_active:
+        var monster := Label.new()
+        monster.text = "Lantai %d | %s HP %d/%d" % [
+            AdventureManager.dungeon_floor, AdventureManager.monster_name,
+            AdventureManager.monster_health, AdventureManager.monster_max_health
+        ]
+        adventure_content.add_child(monster)
+        _add_adventure_action(adventure_content, "Serang", _adventure_attack)
+        _add_adventure_action(adventure_content, "Gunakan ramuan", _adventure_potion)
+        _add_adventure_action(adventure_content, "Keluar dungeon", _adventure_leave)
+    else:
+        _add_adventure_action(adventure_content, "Masuk dungeon", _adventure_enter)
+        _add_adventure_action(adventure_content, "Gunakan ramuan", _adventure_potion)
+    _add_adventure_action(adventure_content, "Tutup", func(): adventure_panel.visible = false)
+
+func _add_adventure_action(parent: VBoxContainer, caption: String, action: Callable) -> void:
+    var button := Button.new()
+    button.text = caption
+    parent.add_child(button)
+    button.pressed.connect(action)
+
+func _adventure_enter() -> void:
+    AdventureManager.enter_dungeon()
+    _refresh_adventure_panel()
+
+func _adventure_attack() -> void:
+    AdventureManager.attack_monster()
+    _refresh_adventure_panel()
+
+func _adventure_potion() -> void:
+    AdventureManager.use_potion()
+    _refresh_adventure_panel()
+
+func _adventure_leave() -> void:
+    AdventureManager.leave_dungeon()
+    _refresh_adventure_panel()
+
 func _add_touch_controls() -> void:
     var base := Control.new()
     base.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
@@ -300,7 +396,8 @@ func _save_world() -> void:
         "time": TimeManager.get_state(),
         "citizens": citizen_data,
         "relationships": RelationshipManager.get_save_data(),
-        "kingdom": KingdomManager.get_save_data()
+        "kingdom": KingdomManager.get_save_data(),
+        "adventure": AdventureManager.get_save_data()
     })
 
 func _notification(what: int) -> void:
