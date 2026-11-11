@@ -196,6 +196,175 @@ func _build_npc_page(parent: VBoxContainer) -> void:
 	talk_button.pressed.connect(_open_aiko_chat)
 	parent.add_child(talk_button)
 
+	_add_teacher_npc_card(parent)
+
+
+func _add_teacher_npc_card(parent: VBoxContainer) -> void:
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = PANEL
+	style.set_corner_radius_all(16)
+	style.set_border_width_all(1)
+	style.border_color = Color("#40516a")
+	card.add_theme_stylebox_override("panel", style)
+	parent.add_child(card)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	card.add_child(row)
+
+	var portrait := PanelContainer.new()
+	portrait.custom_minimum_size = Vector2(88, 88)
+	var portrait_style := StyleBoxFlat.new()
+	portrait_style.bg_color = Color("#34445a")
+	portrait_style.set_corner_radius_all(12)
+	portrait.add_theme_stylebox_override("panel", portrait_style)
+	row.add_child(portrait)
+
+	var initials := Label.new()
+	initials.text = "春"
+	initials.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	initials.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	initials.add_theme_color_override("font_color", ACCENT)
+	initials.add_theme_font_size_override("font_size", 36)
+	portrait.add_child(initials)
+
+	var details := VBoxContainer.new()
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.add_theme_constant_override("separation", 5)
+	row.add_child(details)
+
+	var name_label := Label.new()
+	name_label.text = "Haruka Sato"
+	name_label.add_theme_color_override("font_color", ACCENT)
+	name_label.add_theme_font_size_override("font_size", 19)
+	details.add_child(name_label)
+
+	var role := Label.new()
+	role.text = "佐藤 春香 · Guru Akademi"
+	role.add_theme_color_override("font_color", TEXT_MAIN)
+	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details.add_child(role)
+
+	var info := Label.new()
+	info.text = "Pengajar dan pembimbing seluruh kelas."
+	info.add_theme_color_override("font_color", TEXT_MUTED)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details.add_child(info)
+
+	var talk := Button.new()
+	talk.text = "Profil Guru"
+	talk.custom_minimum_size = Vector2(0, 42)
+	talk.pressed.connect(_open_teacher_profile)
+	details.add_child(talk)
+
+
+func _open_teacher_profile() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_host.add_child(center)
+
+	var layout := VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 12)
+	center.add_child(layout)
+
+	var title := Label.new()
+	title.text = "Haruka Sato · 佐藤 春香"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 23)
+	layout.add_child(title)
+
+	var description := Label.new()
+	description.text = "Guru Akademi\\nBertugas mengajar dan membimbing murid kelas 1, 2, dan 3."
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.add_theme_color_override("font_color", TEXT_MAIN)
+	layout.add_child(description)
+
+	var back := Button.new()
+	back.text = "Kembali ke Karakter"
+	back.custom_minimum_size = Vector2(0, 50)
+	back.pressed.connect(_show_page.bind("Karakter"))
+	layout.add_child(back)
+
+
+func _open_academy() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	page_host.add_child(scroll)
+
+	var layout := VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_theme_constant_override("separation", 12)
+	scroll.add_child(layout)
+
+	var title := Label.new()
+	title.text = "AKADEMI"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 26)
+	layout.add_child(title)
+
+	var intro := Label.new()
+	intro.text = "Tempat para karakter menempuh pendidikan dan mengembangkan kecerdasan."
+	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.add_theme_color_override("font_color", TEXT_MUTED)
+	layout.add_child(intro)
+
+	_add_academy_section(layout, "GURU AKADEMI", "Haruka Sato (佐藤 春香)\\nGuru yang mengajar dan membimbing seluruh tingkatan kelas.")
+
+	_add_academy_section(layout, "RUANG KELAS", "Kelas 1 · Materi dasar\\nKelas 2 · Materi lanjutan\\nKelas 3 · Materi tingkat lanjut dan persiapan kelulusan")
+
+	_add_academy_section(layout, "PAPAN PENGUMUMAN", "Jadwal sekolah: Senin–Sabtu, mulai pukul 08.00.\\nHari Minggu: Libur.\\nUjian semester: setiap 6 bulan.\\nUjian kelulusan: akhir tahun kelas 3.")
+
+	var back := Button.new()
+	back.text = "Kembali ke Pusat Kota"
+	back.custom_minimum_size = Vector2(0, 52)
+	back.pressed.connect(_open_city_center)
+	layout.add_child(back)
+
+
+func _add_academy_section(parent: VBoxContainer, heading: String, body: String) -> void:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = PANEL
+	style.set_corner_radius_all(14)
+	style.set_border_width_all(1)
+	style.border_color = Color("#40516a")
+	panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(panel)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 7)
+	panel.add_child(content)
+
+	var title := Label.new()
+	title.text = heading
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 18)
+	content.add_child(title)
+
+	var note := Label.new()
+	note.text = body
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_color_override("font_color", TEXT_MAIN)
+	content.add_child(note)
+
 func _open_aiko_chat() -> void:
 	for child in page_host.get_children():
 		page_host.remove_child(child)
@@ -484,6 +653,10 @@ func _add_city_location_button(parent: VBoxContainer, location_name: String, des
 
 
 func _open_city_location(location_name: String, description: String) -> void:
+	if location_name == "Akademi":
+		_open_academy()
+		return
+
 	for child in page_host.get_children():
 		page_host.remove_child(child)
 		child.queue_free()
