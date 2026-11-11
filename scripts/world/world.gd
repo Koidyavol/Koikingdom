@@ -91,7 +91,7 @@ func _simulate_family_day() -> void:
     var births := RelationshipManager.process_family_day(citizens, TimeManager.day)
     KingdomManager.process_day(citizens, TimeManager.day)
     if is_instance_valid(kingdom_label):
-        kingdom_label.text = KingdomManager.get_summary()
+        kingdom_label.text = KingdomManager.get_summary() + "\n" + KingdomManager.get_diplomacy_summary()
     for child_data in births:
         if citizens.size() >= 32:
             break
