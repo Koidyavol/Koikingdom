@@ -20,6 +20,7 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Population is capped at 32 citizens in the current prototype
 - Basic kingdom government with an automatically selected King, Queen, Heir, and council
 - Daily treasury, food production/consumption, tax income, happiness, and stability simulation
+- Low, balanced, and high tax policies with corresponding citizen happiness and stability effects
 - Kingdom status and citizen royal/council roles appear in the world HUD and citizen profiles
 - Guard garrison, up to three Imperial Knights, defense rating, and military morale are simulated and saved
 - Garrison upkeep is paid from the royal treasury; unpaid upkeep reduces morale and stability
