@@ -18,6 +18,7 @@ var friends: Array[String] = []
 var parent_ids: Array = []
 var married_day := 0
 var last_age_day := 1
+var kingdom_role := "Citizen"
 
 var speed := 34.0
 var wander_target := Vector2.ZERO
@@ -124,6 +125,7 @@ func get_profile() -> Dictionary:
         "activity": current_activity, "hunger": roundi(hunger),
         "partner_id": partner_id, "relationship_status": relationship_status, "friends": friends,
         "parent_ids": parent_ids, "married_day": married_day, "last_age_day": last_age_day,
+        "kingdom_role": kingdom_role,
         "energy": roundi(energy), "social": roundi(social)
     }
 
