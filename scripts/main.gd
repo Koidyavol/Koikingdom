@@ -14,6 +14,12 @@ var page_host: Control
 var current_page := "Home"
 var chat_log: VBoxContainer
 var chat_input: LineEdit
+var city_player: TextureRect
+var city_move_dir := Vector2.ZERO
+var city_anim_time := 0.0
+var city_walk_frame := 0
+var city_walk_direction := "down"
+var city_world: Control
 
 const NPC_DATA := {
 	"name": "Aiko Nakamura",
@@ -415,23 +421,147 @@ func _build_city_center() -> void:
 	title.add_theme_font_size_override("font_size", 24)
 	header.add_child(title)
 
-	var city_view := TextureRect.new()
-	city_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	city_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	city_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	city_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	city_world = Control.new()
+	city_world.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	city_world.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	city_world.custom_minimum_size = Vector2(0, 420)
+	city_world.clip_contents = true
+	layout.add_child(city_world)
+
+	var ground := TextureRect.new()
+	ground.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ground.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ground.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	ground.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if ResourceLoader.exists(WORLD_TILESET_PATH):
 		var atlas := AtlasTexture.new()
 		atlas.atlas = load(WORLD_TILESET_PATH)
 		atlas.region = Rect2(0, 0, 768, 858)
-		city_view.texture = atlas
-	else:
-		push_warning("World tileset image is missing: " + WORLD_TILESET_PATH)
-	layout.add_child(city_view)
+		ground.texture = atlas
+	city_world.add_child(ground)
 
-	var note := Label.new()
-	note.text = "Area Pusat Kota • menggunakan terrain dan dekorasi dari tile sheet"
-	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	note.add_theme_color_override("font_color", TEXT_MUTED)
-	note.add_theme_font_size_override("font_size", 13)
-	layout.add_child(note)
+	city_player = TextureRect.new()
+	city_player.name = "KoiPlayer"
+	city_player.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	city_player.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	city_player.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	city_player.size = Vector2(74, 96)
+	city_player.position = Vector2(120, 190)
+	city_world.add_child(city_player)
+	_set_city_player_frame("down", 0)
+
+	var instruction := Label.new()
+	instruction.text = "Tahan tombol arah untuk berjalan"
+	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	instruction.add_theme_color_override("font_color", TEXT_MUTED)
+	layout.add_child(instruction)
+
+	var dpad := GridContainer.new()
+	dpad.columns = 3
+	dpad.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	dpad.add_theme_constant_override("h_separation", 8)
+	dpad.add_theme_constant_override("v_separation", 5)
+	layout.add_child(dpad)
+
+	var spacer_left := Control.new()
+	spacer_left.custom_minimum_size = Vector2(62, 48)
+	dpad.add_child(spacer_left)
+	_add_city_direction_button(dpad, "↑", Vector2.UP)
+	var spacer_right := Control.new()
+	spacer_right.custom_minimum_size = Vector2(62, 48)
+	dpad.add_child(spacer_right)
+
+	_add_city_direction_button(dpad, "←", Vector2.LEFT)
+	var center_mark := Label.new()
+	center_mark.text = "✦"
+	center_mark.custom_minimum_size = Vector2(62, 48)
+	center_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	center_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	center_mark.add_theme_color_override("font_color", ACCENT)
+	dpad.add_child(center_mark)
+	_add_city_direction_button(dpad, "→", Vector2.RIGHT)
+
+	var spacer_bottom_left := Control.new()
+	spacer_bottom_left.custom_minimum_size = Vector2(62, 48)
+	dpad.add_child(spacer_bottom_left)
+	_add_city_direction_button(dpad, "↓", Vector2.DOWN)
+	var spacer_bottom_right := Control.new()
+	spacer_bottom_right.custom_minimum_size = Vector2(62, 48)
+	dpad.add_child(spacer_bottom_right)
+
+func _add_city_direction_button(parent: GridContainer, label: String, direction: Vector2) -> void:
+	var button := Button.new()
+	button.text = label
+	button.custom_minimum_size = Vector2(62, 48)
+	button.add_theme_font_size_override("font_size", 23)
+	button.button_down.connect(_set_city_move_direction.bind(direction))
+	button.button_up.connect(_clear_city_move_direction)
+	parent.add_child(button)
+
+func _set_city_move_direction(direction: Vector2) -> void:
+	city_move_dir = direction
+	if direction.y < 0:
+		city_walk_direction = "up"
+	elif direction.y > 0:
+		city_walk_direction = "down"
+	elif direction.x < 0:
+		city_walk_direction = "left"
+	else:
+		city_walk_direction = "right"
+	city_anim_time = 0.0
+	city_walk_frame = 0
+
+func _clear_city_move_direction() -> void:
+	city_move_dir = Vector2.ZERO
+	city_anim_time = 0.0
+	city_walk_frame = 0
+	_set_city_player_frame(city_walk_direction, 0)
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(city_player) or not is_instance_valid(city_world):
+		return
+	if city_move_dir == Vector2.ZERO:
+		return
+	var movement := city_move_dir.normalized() * 155.0 * delta
+	var max_x := maxf(0.0, city_world.size.x - city_player.size.x)
+	var max_y := maxf(0.0, city_world.size.y - city_player.size.y)
+	city_player.position.x = clampf(city_player.position.x + movement.x, 0.0, max_x)
+	city_player.position.y = clampf(city_player.position.y + movement.y, 0.0, max_y)
+	city_anim_time += delta
+	if city_anim_time >= 0.12:
+		city_anim_time = 0.0
+		city_walk_frame = (city_walk_frame + 1) % 6
+		_set_city_player_frame(city_walk_direction, city_walk_frame)
+
+func _set_city_player_frame(direction: String, frame_index: int) -> void:
+	if not is_instance_valid(city_player):
+		return
+	if not ResourceLoader.exists(PLAYER_SPRITE_PATH):
+		return
+	var atlas_texture := load(PLAYER_SPRITE_PATH) as Texture2D
+	if atlas_texture == null:
+		return
+	var frame_rect := Rect2(29, 18, 133, 171)
+	match direction:
+		"up":
+			frame_rect = Rect2(37, 198, 118, 183)
+		"left":
+			var left_frames := [
+				Rect2(31, 989, 105, 154), Rect2(153, 989, 105, 154),
+				Rect2(277, 989, 105, 154), Rect2(401, 989, 105, 154),
+				Rect2(524, 988, 105, 154), Rect2(638, 989, 105, 154)
+			]
+			frame_rect = left_frames[frame_index % left_frames.size()]
+		"right":
+			var right_frames := [
+				Rect2(786, 989, 105, 154), Rect2(908, 989, 105, 154),
+				Rect2(1030, 989, 105, 154), Rect2(1155, 989, 105, 154),
+				Rect2(1278, 989, 105, 154), Rect2(1401, 989, 105, 154)
+			]
+			frame_rect = right_frames[frame_index % right_frames.size()]
+		"down":
+			frame_rect = Rect2(29, 18, 133, 171)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = atlas_texture
+	atlas.region = frame_rect
+	city_player.texture = atlas
