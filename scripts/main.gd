@@ -9,6 +9,14 @@ const TEXT_MUTED := Color("#aab6c6")
 var page_host: Control
 var current_page := "Home"
 
+const NPC_DATA := {
+	"name": "Aiko Nakamura",
+	"japanese_name": "中村 愛子",
+	"gender": "Perempuan",
+	"origin": "Jepang",
+	"type": "NPC"
+}
+
 func _ready() -> void:
 	_build_shell()
 	_show_page("Home")
@@ -83,6 +91,8 @@ func _show_page(page: String) -> void:
 
 	if page == "Home":
 		_build_home(column)
+	elif page == "Karakter":
+		_build_npc_page(column)
 	else:
 		_build_placeholder_page(column, page)
 
@@ -115,6 +125,55 @@ func _build_home(parent: VBoxContainer) -> void:
 	hint.add_theme_color_override("font_color", TEXT_MUTED)
 	hint.add_theme_font_size_override("font_size", 19)
 	placeholder.add_child(hint)
+
+func _build_npc_page(parent: VBoxContainer) -> void:
+	var title := Label.new()
+	title.text = "Karakter NPC"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", TEXT_MAIN)
+	title.add_theme_font_size_override("font_size", 27)
+	parent.add_child(title)
+
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = PANEL
+	style.set_corner_radius_all(16)
+	style.set_border_width_all(1)
+	style.border_color = Color("#40516a")
+	card.add_theme_stylebox_override("panel", style)
+	parent.add_child(card)
+
+	var details := VBoxContainer.new()
+	details.add_theme_constant_override("separation", 9)
+	card.add_child(details)
+
+	var name_label := Label.new()
+	name_label.text = NPC_DATA["name"]
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_color_override("font_color", ACCENT)
+	name_label.add_theme_font_size_override("font_size", 23)
+	details.add_child(name_label)
+
+	var jp_label := Label.new()
+	jp_label.text = NPC_DATA["japanese_name"]
+	jp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	jp_label.add_theme_color_override("font_color", TEXT_MAIN)
+	jp_label.add_theme_font_size_override("font_size", 18)
+	details.add_child(jp_label)
+
+	for key in ["gender", "origin", "type"]:
+		var info := Label.new()
+		info.text = "%s: %s" % [key.capitalize(), NPC_DATA[key]]
+		info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		info.add_theme_color_override("font_color", TEXT_MUTED)
+		details.add_child(info)
+
+	var portrait_hint := Label.new()
+	portrait_hint.text = "Gambar NPC belum ditambahkan"
+	portrait_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portrait_hint.add_theme_color_override("font_color", TEXT_MUTED)
+	parent.add_child(portrait_hint)
 
 func _build_placeholder_page(parent: VBoxContainer, page: String) -> void:
 	var title := Label.new()
