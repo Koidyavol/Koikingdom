@@ -77,10 +77,13 @@ jobs:
           set -euo pipefail
           godot --version
           godot --headless --editor --path . --quit
-          godot --headless --editor --path . --install-android-build-template --quit
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          test -s "$TEMPLATE_DIR/android_source.zip"
+          mkdir -p android
+          unzip -oq "$TEMPLATE_DIR/android_source.zip" -d android
           test -f android/build.gradle
           test -f android/settings.gradle
-          echo "Godot Android Gradle build template installed."
+          echo "Godot Android Gradle build template installed from the matching 4.4.1 export template."
 
       - name: Export and validate APK
         shell: bash
