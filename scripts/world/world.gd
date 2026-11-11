@@ -254,6 +254,11 @@ func _refresh_diplomacy_panel() -> void:
             _refresh_kingdom_hud()
         )
 
+    var history_label := Label.new()
+    history_label.text = KingdomManager.get_world_history_summary()
+    history_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    diplomacy_content.add_child(history_label)
+
     var close_button := Button.new()
     close_button.text = "Tutup"
     diplomacy_content.add_child(close_button)
