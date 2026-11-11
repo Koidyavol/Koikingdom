@@ -96,9 +96,10 @@ func _make_citizen(index: int) -> Dictionary:
 func _show_citizen_profile(profile: Dictionary) -> void:
     if not is_instance_valid(profile_label):
         return
-    profile_label.text = "%s  |  %s %s, %d\nPekerjaan: %s  |  Sifat: %s\nAktivitas: %s\nLapar %d%%  Energi %d%%  Sosial %d%%" % [
+    profile_label.text = "%s  |  %s %s, %d\\nPekerjaan: %s  |  Sifat: %s\\nAktivitas: %s\\nRelasi: %s  |  Teman: %d\\nLapar %d%%  Energi %d%%  Sosial %d%%" % [
         profile.name, profile.gender, profile.race, profile.age, profile.job,
-        profile.personality, profile.activity, profile.relationship_status, profile.friends.size(), profile.hunger, profile.energy, profile.social
+        profile.personality, profile.activity, profile.relationship_status,
+        profile.friends.size(), profile.hunger, profile.energy, profile.social
     ]
 
 func _build_hud() -> void:
