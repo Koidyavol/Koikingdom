@@ -6,7 +6,9 @@ const ACCENT := Color("#d8b878")
 const TEXT_MAIN := Color("#f3f1eb")
 const TEXT_MUTED := Color("#aab6c6")
 const NPC_IMAGE_PATH := "res://assets/character/npc/aiko/character.png"
-const NPC_PORTRAIT_PATH := "res://assets/character/npc/aiko/portrait/portrait.png"
+const NPC_EYES_OPEN_PATH := "res://assets/character/npc/aiko/portrait/eyes_open.jpeg"
+const NPC_EYES_HALF_CLOSED_PATH := "res://assets/character/npc/aiko/portrait/eyes_half_closed.jpeg"
+const NPC_EYES_CLOSED_PATH := "res://assets/character/npc/aiko/portrait/eyes_closed.jpeg"
 
 var page_host: Control
 var current_page := "Home"
@@ -231,9 +233,10 @@ func _open_aiko_chat() -> void:
 	portrait.custom_minimum_size = Vector2(104, 104)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	if ResourceLoader.exists(NPC_PORTRAIT_PATH):
-		portrait.texture = load(NPC_PORTRAIT_PATH)
+	if ResourceLoader.exists(NPC_EYES_OPEN_PATH):
+		portrait.texture = load(NPC_EYES_OPEN_PATH)
 	portrait_row.add_child(portrait)
+	_start_aiko_blink(portrait)
 
 	chat_log = VBoxContainer.new()
 	chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -258,6 +261,34 @@ func _open_aiko_chat() -> void:
 	back_button.text = "Kembali"
 	back_button.pressed.connect(_show_page.bind("Karakter"))
 	chat_page.add_child(back_button)
+
+func _start_aiko_blink(portrait: TextureRect) -> void:
+	if not ResourceLoader.exists(NPC_EYES_OPEN_PATH):
+		push_warning("Aiko eye portrait assets are missing.")
+		return
+	_animate_aiko_blink(portrait)
+
+func _animate_aiko_blink(portrait: TextureRect) -> void:
+	while is_instance_valid(portrait):
+		await get_tree().create_timer(randf_range(2.8, 4.8)).timeout
+		if not is_instance_valid(portrait):
+			return
+		if ResourceLoader.exists(NPC_EYES_HALF_CLOSED_PATH):
+			portrait.texture = load(NPC_EYES_HALF_CLOSED_PATH)
+		await get_tree().create_timer(0.08).timeout
+		if not is_instance_valid(portrait):
+			return
+		if ResourceLoader.exists(NPC_EYES_CLOSED_PATH):
+			portrait.texture = load(NPC_EYES_CLOSED_PATH)
+		await get_tree().create_timer(0.10).timeout
+		if not is_instance_valid(portrait):
+			return
+		if ResourceLoader.exists(NPC_EYES_HALF_CLOSED_PATH):
+			portrait.texture = load(NPC_EYES_HALF_CLOSED_PATH)
+		await get_tree().create_timer(0.08).timeout
+		if not is_instance_valid(portrait):
+			return
+		portrait.texture = load(NPC_EYES_OPEN_PATH)
 
 func _send_chat_message(message: String = "") -> void:
 	var text := message.strip_edges()
