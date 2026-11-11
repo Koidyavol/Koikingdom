@@ -16,6 +16,8 @@ var chat_log: VBoxContainer
 var chat_input: LineEdit
 var map_dragging := false
 var map_drag_last := Vector2.ZERO
+var academy_data: Dictionary = {"students": {}, "last_school_check": ""}
+var academy_status_label: Label
 
 const NPC_DATA := {
 	"name": "Aiko Nakamura",
@@ -27,6 +29,13 @@ const NPC_DATA := {
 
 func _ready() -> void:
 	_build_shell()
+	_load_academy_data()
+	_check_academy_schedule()
+	var academy_timer := Timer.new()
+	academy_timer.wait_time = 30.0
+	academy_timer.timeout.connect(_check_academy_schedule)
+	academy_timer.autostart = true
+	add_child(academy_timer)
 	_show_page("Home")
 
 func _build_shell() -> void:
@@ -308,7 +317,7 @@ func _open_academy() -> void:
 
 	var layout := VBoxContainer.new()
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.add_theme_constant_override("separation", 12)
+	layout.add_theme_constant_override("separation", 10)
 	scroll.add_child(layout)
 
 	var title := Label.new()
@@ -318,24 +327,225 @@ func _open_academy() -> void:
 	title.add_theme_font_size_override("font_size", 26)
 	layout.add_child(title)
 
-	var intro := Label.new()
-	intro.text = "Tempat para karakter menempuh pendidikan dan mengembangkan kecerdasan."
-	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	intro.add_theme_color_override("font_color", TEXT_MUTED)
-	layout.add_child(intro)
+	academy_status_label = Label.new()
+	academy_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	academy_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	academy_status_label.add_theme_color_override("font_color", TEXT_MUTED)
+	layout.add_child(academy_status_label)
+	_update_academy_status()
 
 	_add_academy_section(layout, "GURU AKADEMI", "Haruka Sato (佐藤 春香)\nGuru yang mengajar dan membimbing seluruh tingkatan kelas.")
-
 	_add_academy_section(layout, "RUANG KELAS", "Kelas 1 · Materi dasar\nKelas 2 · Materi lanjutan\nKelas 3 · Materi tingkat lanjut dan persiapan kelulusan")
+	_add_academy_section(layout, "JADWAL & PAPAN PENGUMUMAN", "Sekolah Senin–Sabtu pukul 08.00. Minggu libur.\nUjian semester setiap 6 bulan.\nUjian kelulusan setelah 6 semester (3 tahun).")
 
-	_add_academy_section(layout, "PAPAN PENGUMUMAN", "Jadwal sekolah: Senin–Sabtu, mulai pukul 08.00.\nHari Minggu: Libur.\nUjian semester: setiap 6 bulan.\nUjian kelulusan: akhir tahun kelas 3.")
+	var registration_title := Label.new()
+	registration_title.text = "PENDAFTARAN MURID"
+	registration_title.add_theme_color_override("font_color", ACCENT)
+	registration_title.add_theme_font_size_override("font_size", 19)
+	layout.add_child(registration_title)
+
+	var name_input := LineEdit.new()
+	name_input.placeholder_text = "Masukkan nama karakter"
+	name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(name_input)
+
+	var register_button := Button.new()
+	register_button.text = "Daftarkan ke Kelas 1"
+	register_button.custom_minimum_size = Vector2(0, 48)
+	register_button.pressed.connect(_register_academy_student.bind(name_input))
+	layout.add_child(register_button)
+
+	var attendance_title := Label.new()
+	attendance_title.text = "DAFTAR MURID & ABSENSI"
+	attendance_title.add_theme_color_override("font_color", ACCENT)
+	attendance_title.add_theme_font_size_override("font_size", 19)
+	layout.add_child(attendance_title)
+
+	var student_list := VBoxContainer.new()
+	student_list.name = "AcademyStudentList"
+	student_list.add_theme_constant_override("separation", 8)
+	layout.add_child(student_list)
+	_refresh_academy_student_list(student_list)
 
 	var back := Button.new()
 	back.text = "Kembali ke Pusat Kota"
 	back.custom_minimum_size = Vector2(0, 52)
 	back.pressed.connect(_open_city_center)
 	layout.add_child(back)
+
+
+func _load_academy_data() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://academy.cfg") == OK:
+		var saved = config.get_value("academy", "data", {"students": {}, "last_school_check": ""})
+		if saved is Dictionary:
+			academy_data = saved
+	if not academy_data.has("students") or not academy_data["students"] is Dictionary:
+		academy_data["students"] = {}
+
+
+func _save_academy_data() -> void:
+	var config := ConfigFile.new()
+	config.set_value("academy", "data", academy_data)
+	var error := config.save("user://academy.cfg")
+	if error != OK:
+		push_warning("Gagal menyimpan data Akademi: " + str(error))
+
+
+func _register_academy_student(name_input: LineEdit) -> void:
+	var student_name := name_input.text.strip_edges()
+	if student_name.is_empty():
+		_update_academy_status("Masukkan nama karakter terlebih dahulu.")
+		return
+	var students: Dictionary = academy_data["students"]
+	if students.has(student_name):
+		_update_academy_status(student_name + " sudah terdaftar di Akademi.")
+		return
+	var now := Time.get_datetime_dict_from_system()
+	students[student_name] = {
+		"name": student_name,
+		"class_level": 1,
+		"semester": 1,
+		"iq": 10,
+		"enrolled_date": "%04d-%02d-%02d" % [now.year, now.month, now.day],
+		"last_attendance": "",
+		"attendance": [],
+		"exam_results": [],
+		"status": "Aktif"
+	}
+	academy_data["students"] = students
+	_save_academy_data()
+	name_input.clear()
+	_update_academy_status(student_name + " berhasil didaftarkan ke Kelas 1.")
+	_open_academy()
+
+
+func _check_academy_schedule() -> void:
+	if academy_data.is_empty() or not academy_data.has("students"):
+		return
+	var now := Time.get_datetime_dict_from_system()
+	if now.hour < 8 or now.weekday == 0:
+		return
+	var today := "%04d-%02d-%02d" % [now.year, now.month, now.day]
+	if str(academy_data.get("last_school_check", "")) == today:
+		return
+	var students: Dictionary = academy_data["students"]
+	for student_name in students.keys():
+		var student: Dictionary = students[student_name]
+		if str(student.get("status", "Aktif")) != "Aktif":
+			continue
+		if str(student.get("last_attendance", "")) == today:
+			continue
+		var attendance: Array = student.get("attendance", [])
+		attendance.append({"date": today, "status": "Hadir"})
+		student["attendance"] = attendance
+		student["last_attendance"] = today
+		student["iq"] = int(student.get("iq", 10)) + 1
+		students[student_name] = student
+	academy_data["students"] = students
+	academy_data["last_school_check"] = today
+	_process_academy_exams(now)
+	_save_academy_data()
+	if current_page == "Map" or current_page == "Karakter":
+		return
+	if current_page == "Home":
+		return
+	if academy_status_label != null and is_instance_valid(academy_status_label):
+		_update_academy_status("Kegiatan sekolah hari ini telah dicatat.")
+
+
+func _process_academy_exams(now: Dictionary) -> void:
+	var students: Dictionary = academy_data["students"]
+	var current_date := "%04d-%02d-%02d" % [now.year, now.month, now.day]
+	for student_name in students.keys():
+		var student: Dictionary = students[student_name]
+		if str(student.get("status", "Aktif")) != "Aktif":
+			continue
+		var enrolled := str(student.get("enrolled_date", current_date))
+		var elapsed_months := _months_between(enrolled, current_date)
+		var target_semester := int(floor(float(elapsed_months) / 6.0)) + 1
+		while int(student.get("semester", 1)) < target_semester and int(student.get("semester", 1)) <= 6:
+			var attendance: Array = student.get("attendance", [])
+			var total_days := maxi(1, elapsed_months * 26 / 12)
+			var attendance_rate := minf(1.0, float(attendance.size()) / float(total_days))
+			var exam_score := int(round(60.0 + attendance_rate * 40.0))
+			var results: Array = student.get("exam_results", [])
+			results.append({"semester": int(student.get("semester", 1)), "score": exam_score, "passed": exam_score >= 75})
+			student["exam_results"] = results
+			if exam_score >= 75:
+				var next_semester := int(student.get("semester", 1)) + 1
+				student["semester"] = next_semester
+				student["class_level"] = int(ceil(float(next_semester) / 2.0))
+				if next_semester > 6:
+					student["status"] = "Lulus"
+			else:
+				break
+		students[student_name] = student
+	academy_data["students"] = students
+
+
+func _months_between(start_date: String, end_date: String) -> int:
+	var a := start_date.split("-")
+	var b := end_date.split("-")
+	if a.size() != 3 or b.size() != 3:
+		return 0
+	var months := (int(b[0]) - int(a[0])) * 12 + int(b[1]) - int(a[1])
+	if int(b[2]) < int(a[2]):
+		months -= 1
+	return maxi(0, months)
+
+
+func _refresh_academy_student_list(container: VBoxContainer) -> void:
+	for child in container.get_children():
+		container.remove_child(child)
+		child.queue_free()
+	var students: Dictionary = academy_data.get("students", {})
+	if students.is_empty():
+		var empty := Label.new()
+		empty.text = "Belum ada murid terdaftar."
+		empty.add_theme_color_override("font_color", TEXT_MUTED)
+		container.add_child(empty)
+		return
+	for student_name in students.keys():
+		var student: Dictionary = students[student_name]
+		var card := PanelContainer.new()
+		var style := StyleBoxFlat.new()
+		style.bg_color = PANEL
+		style.set_corner_radius_all(12)
+		card.add_theme_stylebox_override("panel", style)
+		container.add_child(card)
+		var details := VBoxContainer.new()
+		details.add_theme_constant_override("separation", 4)
+		card.add_child(details)
+		var title := Label.new()
+		title.text = str(student_name) + " · Kelas " + str(student.get("class_level", 1))
+		title.add_theme_color_override("font_color", ACCENT)
+		details.add_child(title)
+		var attendance: Array = student.get("attendance", [])
+		var results: Array = student.get("exam_results", [])
+		var status := Label.new()
+		status.text = "Semester %s/6 · IQ %s · Hadir %s kali · %s" % [student.get("semester", 1), student.get("semester", 1) if student.get("status", "Aktif") == "Lulus" else 6, student.get("iq", 10), attendance.size(), student.get("status", "Aktif")]
+		status.add_theme_color_override("font_color", TEXT_MAIN)
+		details.add_child(status)
+		var history := Label.new()
+		history.text = "Absensi terakhir: %s" % str(student.get("last_attendance", "-"))
+		history.add_theme_color_override("font_color", TEXT_MUTED)
+		details.add_child(history)
+		if not results.is_empty():
+			var exam_label := Label.new()
+			var last_exam: Dictionary = results[results.size() - 1]
+			exam_label.text = "Nilai ujian terakhir: %s (%s)" % [last_exam.get("score", 0), "Lulus" if last_exam.get("passed", false) else "Belum lulus"]
+			exam_label.add_theme_color_override("font_color", TEXT_MUTED)
+			details.add_child(exam_label)
+
+
+func _update_academy_status(message: String = "") -> void:
+	if academy_status_label == null or not is_instance_valid(academy_status_label):
+		return
+	var now := Time.get_datetime_dict_from_system()
+	var school_day := "Libur (Minggu)" if now.weekday == 0 else "Hari sekolah"
+	var status_text := "%s · %02d:%02d\nSekolah mulai pukul 08.00. %s" % [school_day, now.hour, now.minute, "Minggu libur." if now.weekday == 0 else "Sekolah berjalan Senin–Sabtu."]
+	academy_status_label.text = status_text if message.is_empty() else status_text + "\n" + message
 
 
 func _add_academy_section(parent: VBoxContainer, heading: String, body: String) -> void:
