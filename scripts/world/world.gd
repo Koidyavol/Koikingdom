@@ -154,7 +154,7 @@ func _build_hud() -> void:
 
     var hint := Label.new()
     hint.text = "WASD / tombol arah untuk bergerak"
-    hint.position = Vector2(16, 218)
+    hint.position = Vector2(16, 250)
     hint.add_theme_color_override("font_color", Color.WHITE)
     hud.add_child(hint)
     _add_touch_controls()
