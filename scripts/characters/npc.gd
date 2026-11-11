@@ -81,10 +81,10 @@ func _process(delta: float) -> void:
 func _choose_activity(force: bool) -> void:
     _last_schedule_hour = TimeManager.hour
     var hour := TimeManager.hour
-    if age < 7:
-        current_activity = "Playing"
-    elif energy < 18.0 or hour >= 22 or hour < 6:
+    if energy < 18.0 or hour >= 22 or hour < 6:
         current_activity = "Sleeping"
+    elif age < 7:
+        current_activity = "Playing"
     elif hunger < 28.0 or hour == 12:
         current_activity = "Eating"
     elif hour >= 7 and hour < 17:
