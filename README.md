@@ -14,6 +14,10 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Autonomous social meetings and persistent friendship bonds
 - Adult male/female citizens can become partners and later marry
 - Citizen profiles show relationship status and friend count
+- Married adult citizens can have children after a waiting period
+- Children age one year per 365 in-game days and progress from Child to Student to adult work
+- Parent IDs, ages, child identities, and birth cooldowns persist in saves
+- Population is capped at 32 citizens in the current prototype
 
 ## Run
 1. Open this repository in Godot 4.3 or newer.
