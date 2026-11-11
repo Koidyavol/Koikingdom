@@ -24,7 +24,10 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Kingdom status and citizen royal/council roles appear in the world HUD and citizen profiles
 - Guard garrison, up to three Imperial Knights, defense rating, and military morale are simulated and saved
 - Garrison upkeep is paid from the royal treasury; unpaid upkeep reduces morale and stability
-- Three neighboring kingdoms have autonomous diplomatic relations and trade status
+- Four-kingdom world: the home kingdom and three neighboring kingdoms have autonomous diplomacy
+- Neighboring kingdoms simulate population, food reserves, treasury, and prosperity each in-game day
+- Active trade routes influence neighboring kingdom resources and prosperity
+- World history records monthly demographic and prosperity reports and persists in saves
 - Relations drift over time; trade agreements generate daily gold and food
 - Diplomacy actions support improving relations, proposing trade, and ending trade
 - In-game diplomacy panel exposes gift, trade, and tax-policy controls on touch devices
