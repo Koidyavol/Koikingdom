@@ -437,10 +437,12 @@ func _check_academy_schedule() -> void:
 		if str(student.get("last_attendance", "")) == today:
 			continue
 		var attendance: Array = student.get("attendance", [])
-		attendance.append({"date": today, "status": "Hadir"})
+		var attendance_status := "Hadir" if now.hour < 9 else "Tidak hadir"
+		attendance.append({"date": today, "status": attendance_status})
 		student["attendance"] = attendance
 		student["last_attendance"] = today
-		student["iq"] = int(student.get("iq", 10)) + 1
+		if attendance_status == "Hadir":
+			student["iq"] = int(student.get("iq", 10)) + 1
 		students[student_name] = student
 	academy_data["students"] = students
 	academy_data["last_school_check"] = today
@@ -463,23 +465,28 @@ func _process_academy_exams(now: Dictionary) -> void:
 			continue
 		var enrolled := str(student.get("enrolled_date", current_date))
 		var elapsed_months := _months_between(enrolled, current_date)
-		var target_semester := int(floor(float(elapsed_months) / 6.0)) + 1
-		while int(student.get("semester", 1)) < target_semester and int(student.get("semester", 1)) <= 6:
-			var attendance: Array = student.get("attendance", [])
-			var total_days := maxi(1, elapsed_months * 26 / 12)
-			var attendance_rate := minf(1.0, float(attendance.size()) / float(total_days))
-			var exam_score := int(round(60.0 + attendance_rate * 40.0))
-			var results: Array = student.get("exam_results", [])
-			results.append({"semester": int(student.get("semester", 1)), "score": exam_score, "passed": exam_score >= 75})
-			student["exam_results"] = results
-			if exam_score >= 75:
-				var next_semester := int(student.get("semester", 1)) + 1
-				student["semester"] = next_semester
-				student["class_level"] = int(ceil(float(next_semester) / 2.0))
-				if next_semester > 6:
-					student["status"] = "Lulus"
-			else:
-				break
+		var exam_month := int(floor(float(elapsed_months) / 6.0)) * 6
+		if exam_month < 6 or exam_month <= int(student.get("last_exam_month", 0)):
+			continue
+		var attendance: Array = student.get("attendance", [])
+		var present_count := 0
+		for record in attendance:
+			if str(record.get("status", "")) == "Hadir":
+				present_count += 1
+		var expected_days := maxi(1, int(elapsed_months * 26 / 12))
+		var attendance_rate := minf(1.0, float(present_count) / float(expected_days))
+		var exam_score := int(round(60.0 + attendance_rate * 40.0))
+		var current_semester := int(student.get("semester", 1))
+		var results: Array = student.get("exam_results", [])
+		results.append({"semester": current_semester, "score": exam_score, "passed": exam_score >= 75, "date": current_date})
+		student["exam_results"] = results
+		student["last_exam_month"] = exam_month
+		if exam_score >= 75:
+			var next_semester := current_semester + 1
+			student["semester"] = next_semester
+			student["class_level"] = int(ceil(float(next_semester) / 2.0))
+			if next_semester > 6:
+				student["status"] = "Lulus"
 		students[student_name] = student
 	academy_data["students"] = students
 
@@ -524,7 +531,7 @@ func _refresh_academy_student_list(container: VBoxContainer) -> void:
 		var attendance: Array = student.get("attendance", [])
 		var results: Array = student.get("exam_results", [])
 		var status := Label.new()
-		status.text = "Semester %s/6 · IQ %s · Hadir %s kali · %s" % [student.get("semester", 1), student.get("semester", 1) if student.get("status", "Aktif") == "Lulus" else 6, student.get("iq", 10), attendance.size(), student.get("status", "Aktif")]
+		status.text = "Semester %s/6 · IQ %s · Hadir %s kali · %s" % [student.get("semester", 1), student.get("iq", 10), attendance.size(), student.get("status", "Aktif")]
 		status.add_theme_color_override("font_color", TEXT_MAIN)
 		details.add_child(status)
 		var history := Label.new()
