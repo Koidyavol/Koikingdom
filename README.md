@@ -31,7 +31,11 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Adventure progression with level, experience, health, attack, defense, and gold
 - Dungeon floors with scaling fantasy monsters and turn-based player combat
 - Dungeon victories award experience, gold, and random potion/material drops
-- Inventory tracks potions and materials; potions restore health
+- Inventory stacks consumables and crafting materials; potions restore health
+- Dungeon monsters can drop usable weapons and armor
+- Equipment can be equipped to increase attack or defense; replaced equipment returns to inventory
+- Blacksmith crafting recipes convert iron ore and magic crystals into equipment
+- Level-up stat increases persist independently from equipment bonuses
 - Adventure stats, dungeon progress, equipment labels, and inventory persist in saves
 - Touch-friendly adventure panel provides dungeon entry, attack, potion, and exit actions
 
