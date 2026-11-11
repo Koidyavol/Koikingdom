@@ -5,6 +5,7 @@ const PANEL := Color("#1c2b40")
 const ACCENT := Color("#d8b878")
 const TEXT_MAIN := Color("#f3f1eb")
 const TEXT_MUTED := Color("#aab6c6")
+const PLAYER_SPRITE_PATH := "res://assets/character/koi_chibi_sprite_transparent-1.png"
 const NPC_IMAGE_PATH := "res://assets/character/npc/aiko/file_00000000a6b48207b9d35d50cf590e0d.png"
 const NPC_EYES_OPEN_PATH := "res://assets/character/npc/aiko/portrait/eyes_open.jpeg"
 const NPC_EYES_HALF_CLOSED_PATH := "res://assets/character/npc/aiko/portrait/eyes_half_closed.jpeg"
