@@ -5,7 +5,7 @@ const PANEL := Color("#1c2b40")
 const ACCENT := Color("#d8b878")
 const TEXT_MAIN := Color("#f3f1eb")
 const TEXT_MUTED := Color("#aab6c6")
-const NPC_IMAGE_PATH := "res://assets/character/npc/aiko/character.png"
+const NPC_IMAGE_PATH := "res://assets/character/npc/aiko/file_00000000a6b48207b9d35d50cf590e0d.png"
 const NPC_EYES_OPEN_PATH := "res://assets/character/npc/aiko/portrait/eyes_open.jpeg"
 const NPC_EYES_HALF_CLOSED_PATH := "res://assets/character/npc/aiko/portrait/eyes_half_closed.jpeg"
 const NPC_EYES_CLOSED_PATH := "res://assets/character/npc/aiko/portrait/eyes_closed.jpeg"
@@ -254,7 +254,7 @@ func _open_aiko_chat() -> void:
 
 	var send_button := Button.new()
 	send_button.text = "Kirim"
-	send_button.pressed.connect(_send_chat_message.bind(chat_input.text))
+	send_button.pressed.connect(_send_chat_message)
 	input_row.add_child(send_button)
 
 	var back_button := Button.new()

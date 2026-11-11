@@ -6,10 +6,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build-android:
     name: Export Android APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,7 +27,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
       - name: Set up Godot 4.4.1 and Android export templates
         uses: chickensoft-games/setup-godot@v1
@@ -35,8 +39,13 @@ jobs:
       - name: Configure Android export environment
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p "$HOME/.config/godot" "$HOME/.android" build
-          keytool -genkeypair -v -keystore "$GITHUB_WORKSPACE/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          keytool -genkeypair -v \
+            -keystore "$GITHUB_WORKSPACE/debug.keystore" \
+            -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
           [gd_resource type="EditorSettings" format=3]
 
@@ -47,22 +56,22 @@ jobs:
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
+          test -f "$GITHUB_WORKSPACE/debug.keystore"
+          test -f "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
           echo "Java: $JAVA_HOME"
           echo "Android SDK: $ANDROID_HOME"
-          test -f "$GITHUB_WORKSPACE/debug.keystore"
+          echo "Godot Android export template: present"
 
       - name: Import project and export APK
         shell: bash
-        env:
-          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/debug.keystore
-          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
-          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
+          set -euo pipefail
           godot --version
           godot --headless --editor --path . --quit
           godot --headless --path . --export-debug Android build/KoiKingdom.apk
           test -s build/KoiKingdom.apk
           file build/KoiKingdom.apk
+          unzip -t build/KoiKingdom.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
