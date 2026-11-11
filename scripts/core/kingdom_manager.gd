@@ -9,6 +9,10 @@ var king_id := ""
 var queen_id := ""
 var heir_id := ""
 var council_ids: Array[String] = []
+var imperial_knight_ids: Array[String] = []
+var garrison_count := 0
+var defense_rating := 0
+var military_morale: float = 75.0
 var last_processed_day := 0
 
 func process_day(citizens: Array, current_day: int) -> void:
@@ -35,6 +39,13 @@ func process_day(citizens: Array, current_day: int) -> void:
         food += farmers * 4 - population * 2
         var taxable_workers := farmers + merchants + workers
         treasury += 3 + int(float(taxable_workers) * 2.0 * tax_rate * 10.0)
+        var upkeep := garrison_count + imperial_knight_ids.size() * 2
+        if treasury >= upkeep:
+            treasury -= upkeep
+            military_morale = minf(100.0, military_morale + 0.5)
+        else:
+            military_morale = maxf(0.0, military_morale - 2.0)
+            stability = maxf(0.0, stability - 0.2)
         if food < 0:
             happiness = maxf(0.0, happiness - 4.0)
             stability = maxf(0.0, stability - 2.0)
@@ -90,6 +101,15 @@ func assign_government(citizens: Array) -> void:
                 break
         if council_ids.size() >= 5:
             break
+    imperial_knight_ids.clear()
+    garrison_count = 0
+    for citizen in adults:
+        if citizen.job == "Guard":
+            garrison_count += 1
+            if citizen.npc_id != king_id and citizen.npc_id != queen_id and not council_ids.has(citizen.npc_id) and imperial_knight_ids.size() < 3:
+                imperial_knight_ids.append(citizen.npc_id)
+                citizen.kingdom_role = "Imperial Knight"
+    defense_rating = garrison_count * 10 + imperial_knight_ids.size() * 15
 
 func _oldest_by_gender(citizens: Array, wanted_gender: String):
     var selected = null
@@ -109,11 +129,14 @@ func get_role(citizen_id: String) -> String:
         return "Heir"
     if council_ids.has(citizen_id):
         return "Council"
+    if imperial_knight_ids.has(citizen_id):
+        return "Imperial Knight"
     return "Citizen"
 
 func get_summary() -> String:
-    return "Kerajaan | Emas %d | Pangan %d | Pajak %d%% | Bahagia %d%% | Stabil %d%%" % [
-        treasury, food, roundi(tax_rate * 100.0), roundi(happiness), roundi(stability)
+    return "Kerajaan | Emas %d | Pangan %d | Pajak %d%% | Bahagia %d%% | Stabil %d%%\\nGarnisun %d | Ksatria %d | Pertahanan %d | Moral %d%%" % [
+        treasury, food, roundi(tax_rate * 100.0), roundi(happiness), roundi(stability),
+        garrison_count, imperial_knight_ids.size(), defense_rating, roundi(military_morale)
     ]
 
 func get_save_data() -> Dictionary:
@@ -121,7 +144,9 @@ func get_save_data() -> Dictionary:
         "treasury": treasury, "food": food, "tax_rate": tax_rate,
         "happiness": happiness, "stability": stability,
         "king_id": king_id, "queen_id": queen_id, "heir_id": heir_id,
-        "council_ids": council_ids, "last_processed_day": last_processed_day
+        "council_ids": council_ids, "imperial_knight_ids": imperial_knight_ids,
+        "garrison_count": garrison_count, "defense_rating": defense_rating,
+        "military_morale": military_morale, "last_processed_day": last_processed_day
     }
 
 func apply_state(state: Dictionary) -> void:
@@ -136,6 +161,12 @@ func apply_state(state: Dictionary) -> void:
     council_ids.clear()
     for citizen_id in state.get("council_ids", []):
         council_ids.append(str(citizen_id))
+    imperial_knight_ids.clear()
+    for knight_id in state.get("imperial_knight_ids", []):
+        imperial_knight_ids.append(str(knight_id))
+    garrison_count = maxi(0, int(state.get("garrison_count", 0)))
+    defense_rating = maxi(0, int(state.get("defense_rating", 0)))
+    military_morale = clampf(float(state.get("military_morale", 75.0)), 0.0, 100.0)
     last_processed_day = int(state.get("last_processed_day", 0))
 
 func reset() -> void:
@@ -148,4 +179,8 @@ func reset() -> void:
     queen_id = ""
     heir_id = ""
     council_ids.clear()
+    imperial_knight_ids.clear()
+    garrison_count = 0
+    defense_rating = 0
+    military_morale = 75.0
     last_processed_day = 0
