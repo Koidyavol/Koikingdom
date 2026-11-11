@@ -85,6 +85,10 @@ func process_family_day(citizens: Array, current_day: int) -> Array[Dictionary]:
             continue
         var couple_key := _pair_key(citizen.npc_id, partner.npc_id)
         var married_day := maxi(int(citizen.married_day), int(partner.married_day))
+        if married_day <= 0:
+            married_day = current_day
+            citizen.married_day = current_day
+            partner.married_day = current_day
         var last_birth_day := int(last_birth_days.get(couple_key, married_day))
         if current_day - married_day < 30 or current_day - last_birth_day < 120:
             continue
