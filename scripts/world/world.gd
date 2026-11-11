@@ -63,8 +63,7 @@ func _draw() -> void:
 
 func _spawn_npcs(saved_citizens: Array) -> void:
     for i in range(STARTING_NPC_COUNT):
-        var npc = Node2D.new()
-        npc.set_script(NPC_SCRIPT)
+        var npc = NPC_SCRIPT.new()
         add_child(npc)
         var data: Dictionary
         if i < saved_citizens.size() and saved_citizens[i] is Dictionary:
@@ -82,7 +81,7 @@ func _make_citizen(index: int) -> Dictionary:
         "name": FIRST_NAMES[randi_range(0, FIRST_NAMES.size() - 1)],
         "race": RACES[randi_range(0, RACES.size() - 1)],
         "gender": gender,
-        "age": randi_range(18,  sixty()),
+        "age": randi_range(18, 60),
         "job": JOBS[randi_range(0, JOBS.size() - 1)],
         "personality": PERSONALITIES[randi_range(0, PERSONALITIES.size() - 1)],
         "hunger": randf_range(65.0, 100.0),
@@ -90,9 +89,6 @@ func _make_citizen(index: int) -> Dictionary:
         "social": randf_range(55.0, 100.0),
         "position": [randf_range(420, 900), randf_range(250, 500)]
     }
-
-func sixty() -> int:
-    return 60
 
 func _show_citizen_profile(profile: Dictionary) -> void:
     if not is_instance_valid(profile_label):
