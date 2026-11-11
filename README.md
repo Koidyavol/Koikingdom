@@ -37,6 +37,9 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Blacksmith crafting recipes convert iron ore and magic crystals into equipment
 - Mana and skill points are earned through leveling
 - Three learnable active combat skills: Power Strike, Guard Stance, and Healing Light
+- Adventurer guild board with monster-hunt, dungeon-exploration, and material-gathering quests
+- Quest acceptance, progress tracking, claimable EXP/gold/reputation rewards, and five guild ranks
+- Dungeon bosses appear every five floors and award increased rewards and guild reputation
 - Level-up stat increases persist independently from equipment bonuses
 - Adventure stats, dungeon progress, equipment labels, and inventory persist in saves
 - Touch-friendly adventure panel provides dungeon entry, attack, potion, and exit actions
