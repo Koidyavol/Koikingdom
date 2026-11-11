@@ -11,6 +11,7 @@ TimeManager="*res://scripts/autoload/time_manager.gd"
 SaveManager="*res://scripts/core/save_manager.gd"
 RelationshipManager="*res://scripts/core/relationship_manager.gd"
 KingdomManager="*res://scripts/core/kingdom_manager.gd"
+AdventureManager="*res://scripts/core/adventure_manager.gd"
 
 [display]
 window/size/viewport_width=1280
