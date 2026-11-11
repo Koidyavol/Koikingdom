@@ -15,6 +15,9 @@ var social := 75.0
 var partner_id := ""
 var relationship_status := "Single"
 var friends: Array[String] = []
+var parent_ids: Array = []
+var married_day := 0
+var last_age_day := 1
 
 var speed := 34.0
 var wander_target := Vector2.ZERO
@@ -37,6 +40,9 @@ func setup(data: Dictionary) -> void:
     social = clampf(float(data.get("social", 75.0)), 0.0, 100.0)
     partner_id = str(data.get("partner_id", ""))
     relationship_status = str(data.get("relationship_status", "Single"))
+    married_day = int(data.get("married_day", 0))
+    last_age_day = int(data.get("last_age_day", TimeManager.day))
+    parent_ids = data.get("parent_ids", []).duplicate()
     friends.clear()
     for friend_id in data.get("friends", []):
         friends.append(str(friend_id))
@@ -75,7 +81,9 @@ func _process(delta: float) -> void:
 func _choose_activity(force: bool) -> void:
     _last_schedule_hour = TimeManager.hour
     var hour := TimeManager.hour
-    if energy < 18.0 or hour >= 22 or hour < 6:
+    if age < 7:
+        current_activity = "Playing"
+    elif energy < 18.0 or hour >= 22 or hour < 6:
         current_activity = "Sleeping"
     elif hunger < 28.0 or hour == 12:
         current_activity = "Eating"
@@ -104,6 +112,7 @@ func _choose_target() -> void:
                 _: center = Vector2(640, 360)
         "Eating": center = Vector2(600, 390)
         "Sleeping": center = Vector2(640, 360)
+        "Playing": center = Vector2(640, 440)
         "Socializing": center = Vector2(690, 420)
         _: center = Vector2(640, 360)
     wander_target = center + Vector2(randf_range(-55, 55), randf_range(-28, 28))
@@ -114,6 +123,7 @@ func get_profile() -> Dictionary:
         "age": age, "job": job, "personality": personality,
         "activity": current_activity, "hunger": roundi(hunger),
         "partner_id": partner_id, "relationship_status": relationship_status, "friends": friends,
+        "parent_ids": parent_ids, "married_day": married_day, "last_age_day": last_age_day,
         "energy": roundi(energy), "social": roundi(social)
     }
 
