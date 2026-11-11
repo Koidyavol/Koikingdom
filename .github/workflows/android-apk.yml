@@ -43,12 +43,9 @@ jobs:
             "platforms;android-34" \
             "build-tools;34.0.0" \
             "cmdline-tools;latest" \
-            "cmake;3.10.2.4988404" \
-            "ndk;23.2.8568313"
+
           test -d "$ANDROID_HOME/platforms/android-34"
           test -d "$ANDROID_HOME/build-tools/34.0.0"
-          test -d "$ANDROID_HOME/cmake/3.10.2.4988404"
-          test -d "$ANDROID_HOME/ndk/23.2.8568313"
 
       - name: Set up Godot 4.4.1 and export templates
         uses: chickensoft-games/setup-godot@v1
@@ -88,25 +85,19 @@ jobs:
           godot --version
           timeout 240s godot --headless --editor --path . --quit
 
-      - name: Install Android template and export APK
+      - name: Export APK using the standard Godot template
         shell: bash
-        timeout-minutes: 18
+        timeout-minutes: 15
         run: |
           set -euo pipefail
-          # Godot documents this install flag for use together with export.
-          # Keep both operations in one bounded process to avoid an editor
-          # instance waiting indefinitely after template installation.
-          timeout 16m godot --headless --path . \
-            --install-android-build-template \
-            --export-debug Android build/KoiKingdom.apk
-          test -s android/build/build.gradle
-          test -s android/build/settings.gradle
-          test -s android/build/version.txt
+          # This project has no custom Android plugins or Gradle dependencies.
+          # Use Godot's matching prebuilt Android template instead of Gradle.
+          timeout 12m godot --headless --verbose --path . --export-debug Android build/KoiKingdom.apk
           test -s build/KoiKingdom.apk
           file build/KoiKingdom.apk
           unzip -t build/KoiKingdom.apk
           unzip -l build/KoiKingdom.apk | grep -q "AndroidManifest.xml"
-          echo "Android template metadata and APK validation passed."
+          echo "APK export and archive validation passed."
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
