@@ -99,11 +99,11 @@ func _win_battle() -> void:
     var template: Dictionary = MONSTERS[index]
     var gained_exp := int(template.exp) + dungeon_floor * 2
     var gained_gold := int(template.gold) + dungeon_floor
+    last_result = "BOSS DIKALAHKAN! Reputasi guild +20" if monster_is_boss else ""
     if monster_is_boss:
         gained_exp *= 3
         gained_gold *= 3
         guild_reputation += 20
-        last_result = "BOSS DIKALAHKAN! Reputasi guild +20"
     experience += gained_exp
     gold += gained_gold
     _add_loot()
