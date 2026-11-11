@@ -95,7 +95,10 @@ func _show_page(page: String) -> void:
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center.add_child(column)
 
-	if page == "Home":
+	if page == "Map":
+		_build_map_page()
+		return
+	elif page == "Home":
 		_build_home(column)
 	elif page == "Karakter":
 		_build_npc_page(column)
@@ -333,3 +336,102 @@ func _build_placeholder_page(parent: VBoxContainer, page: String) -> void:
 	note.add_theme_color_override("font_color", TEXT_MUTED)
 	note.add_theme_font_size_override("font_size", 17)
 	parent.add_child(note)
+
+
+const WORLD_MAP_PATH := "res://assets/map/Gemini_Generated_Image_ghfufvghfufvghfu.jpeg"
+const WORLD_TILESET_PATH := "res://assets/tileset/IMG_20261111_185922.jpg"
+
+func _build_map_page() -> void:
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	page_host.add_child(scroll)
+
+	var map_root := Control.new()
+	map_root.custom_minimum_size = Vector2(1536, 1536)
+	scroll.add_child(map_root)
+
+	var map_image := TextureRect.new()
+	map_image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	map_image.stretch_mode = TextureRect.STRETCH_SCALE
+	map_image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists(WORLD_MAP_PATH):
+		map_image.texture = load(WORLD_MAP_PATH)
+	else:
+		push_warning("World map image is missing: " + WORLD_MAP_PATH)
+	map_root.add_child(map_image)
+
+	var city_button := Button.new()
+	city_button.text = "PUSAT KOTA\nMasuk"
+	city_button.position = Vector2(648, 715)
+	city_button.custom_minimum_size = Vector2(240, 106)
+	city_button.size = Vector2(240, 106)
+	city_button.add_theme_font_size_override("font_size", 22)
+	city_button.pressed.connect(_open_city_center)
+	map_root.add_child(city_button)
+
+	var hint := Label.new()
+	hint.text = "Geser peta untuk menjelajah • Ketuk Pusat Kota untuk masuk"
+	hint.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	hint.offset_left = 12
+	hint.offset_top = 10
+	hint.offset_right = -12
+	hint.add_theme_color_override("font_color", TEXT_MAIN)
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page_host.add_child(hint)
+
+	scroll.set_deferred("scroll_horizontal", 408)
+	scroll.set_deferred("scroll_vertical", 408)
+
+func _open_city_center() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+	_build_city_center()
+
+func _build_city_center() -> void:
+	var layout := VBoxContainer.new()
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layout.add_theme_constant_override("separation", 8)
+	page_host.add_child(layout)
+
+	var header := HBoxContainer.new()
+	layout.add_child(header)
+
+	var back_button := Button.new()
+	back_button.text = "← Kembali ke Map"
+	back_button.pressed.connect(_show_page.bind("Map"))
+	header.add_child(back_button)
+
+	var title := Label.new()
+	title.text = "PUSAT KOTA"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 24)
+	header.add_child(title)
+
+	var city_view := TextureRect.new()
+	city_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	city_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	city_view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	city_view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if ResourceLoader.exists(WORLD_TILESET_PATH):
+		var atlas := AtlasTexture.new()
+		atlas.atlas = load(WORLD_TILESET_PATH)
+		atlas.region = Rect2(0, 0, 768, 858)
+		city_view.texture = atlas
+	else:
+		push_warning("World tileset image is missing: " + WORLD_TILESET_PATH)
+	layout.add_child(city_view)
+
+	var note := Label.new()
+	note.text = "Area Pusat Kota • menggunakan terrain dan dekorasi dari tile sheet"
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.add_theme_color_override("font_color", TEXT_MUTED)
+	note.add_theme_font_size_override("font_size", 13)
+	layout.add_child(note)
