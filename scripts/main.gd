@@ -367,6 +367,17 @@ func _build_map_page() -> void:
 		push_warning("World map image is missing: " + WORLD_MAP_PATH)
 	map_root.add_child(map_image)
 
+	# Hotspot is positioned in map-image coordinates, so it moves with the map while dragging.
+	var city_hotspot := Button.new()
+	city_hotspot.text = "PUSAT KOTA"
+	city_hotspot.position = Vector2(540, 155)
+	city_hotspot.size = Vector2(190, 92)
+	city_hotspot.custom_minimum_size = Vector2(190, 92)
+	city_hotspot.add_theme_font_size_override("font_size", 19)
+	city_hotspot.add_theme_color_override("font_color", TEXT_MAIN)
+	city_hotspot.pressed.connect(_open_city_center)
+	map_root.add_child(city_hotspot)
+
 
 	var hint := Label.new()
 	hint.text = "Geser peta untuk menjelajah"
@@ -411,3 +422,98 @@ func _on_map_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
 		scroll.scroll_vertical = maxi(0, scroll.scroll_vertical - int(drag_delta.y))
 		map_drag_last = event.position
 		scroll.accept_event()
+
+
+func _open_city_center() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var style := StyleBoxFlat.new()
+	style.bg_color = BG
+	style.set_corner_radius_all(14)
+	panel.add_theme_stylebox_override("panel", style)
+	page_host.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(margin)
+
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 14)
+	margin.add_child(layout)
+
+	var title := Label.new()
+	title.text = "PUSAT KOTA"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 27)
+	layout.add_child(title)
+
+	var subtitle := Label.new()
+	subtitle.text = "Pilih lokasi yang ingin dikunjungi"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_color_override("font_color", TEXT_MUTED)
+	layout.add_child(subtitle)
+
+	_add_city_location_button(layout, "Akademi", "Tempat karakter belajar dan mengembangkan kemampuan.")
+	_add_city_location_button(layout, "Guild Petualang", "Pusat quest, permintaan, dan aktivitas petualang.")
+	_add_city_location_button(layout, "Balai Kota", "Pusat informasi dan administrasi kota.")
+	_add_city_location_button(layout, "Pemukiman", "Area rumah dan kehidupan sehari-hari penduduk.")
+
+	var back := Button.new()
+	back.text = "Kembali ke Map"
+	back.custom_minimum_size = Vector2(0, 54)
+	back.pressed.connect(_show_page.bind("Map"))
+	layout.add_child(back)
+
+
+func _add_city_location_button(parent: VBoxContainer, location_name: String, description: String) -> void:
+	var button := Button.new()
+	button.text = location_name + "\\n" + description
+	button.custom_minimum_size = Vector2(0, 82)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_font_size_override("font_size", 17)
+	button.pressed.connect(_open_city_location.bind(location_name, description))
+	parent.add_child(button)
+
+
+func _open_city_location(location_name: String, description: String) -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page_host.add_child(center)
+
+	var layout := VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 16)
+	center.add_child(layout)
+
+	var title := Label.new()
+	title.text = location_name
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 27)
+	layout.add_child(title)
+
+	var note := Label.new()
+	note.text = description + "\\n\\nFasilitas lokasi ini akan dikembangkan berikutnya."
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_color_override("font_color", TEXT_MUTED)
+	layout.add_child(note)
+
+	var back := Button.new()
+	back.text = "Kembali ke Pusat Kota"
+	back.custom_minimum_size = Vector2(0, 54)
+	back.pressed.connect(_open_city_center)
+	layout.add_child(back)
