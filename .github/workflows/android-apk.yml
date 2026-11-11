@@ -36,6 +36,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$HOME/.config/godot" "$HOME/.android" build
+          keytool -genkeypair -v \\
+            -keystore "$GITHUB_WORKSPACE/debug.keystore" \\
+            -storepass android -alias androiddebugkey \\
+            -keypass android -keyalg RSA -keysize 2048 \\
+            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           keytool -genkeypair -v \
             -keystore "$HOME/.android/debug.keystore" \
             -storepass android -alias androiddebugkey \
@@ -47,18 +52,18 @@ jobs:
           [resource]
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/android_sdk_path = "$ANDROID_HOME"
-          export/android/debug_keystore = "$HOME/.android/debug.keystore"
+          export/android/debug_keystore = "$GITHUB_WORKSPACE/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
           echo "Java: $JAVA_HOME"
           echo "Android SDK: $ANDROID_HOME"
-          test -f "$HOME/.android/debug.keystore"
+          test -f "$GITHUB_WORKSPACE/debug.keystore"
 
       - name: Import project and export APK
         shell: bash
         env:
-          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/../.android/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/debug.keystore
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
