@@ -102,7 +102,7 @@ func process_family_day(citizens: Array, current_day: int) -> Array[Dictionary]:
         var child_name := "Hana" if child_gender == "Female" else "Ren"
         var child_id := "child_%04d" % next_child_number
         next_child_number += 1
-        var child_race := citizen.race if randi() % 2 == 0 else partner.race
+        var child_race: String = str(citizen.race if randi() % 2 == 0 else partner.race)
         births.append({
             "id": child_id, "name": child_name, "race": child_race,
             "gender": child_gender, "age": 0, "job": "Child",
