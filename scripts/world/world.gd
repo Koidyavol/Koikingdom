@@ -146,7 +146,7 @@ func _build_hud() -> void:
     hud.add_child(profile_label)
 
     kingdom_label = Label.new()
-    kingdom_label.text = KingdomManager.get_summary()
+    kingdom_label.text = KingdomManager.get_summary() + "\n" + KingdomManager.get_diplomacy_summary()
     kingdom_label.position = Vector2(16, 190)
     kingdom_label.add_theme_color_override("font_color", Color("#f2d9a6"))
     kingdom_label.add_theme_font_size_override("font_size", 13)
