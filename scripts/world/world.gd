@@ -98,7 +98,10 @@ func _simulate_family_day() -> void:
     _last_family_day = TimeManager.day
     var births := RelationshipManager.process_family_day(citizens, TimeManager.day)
     KingdomManager.process_day(citizens, TimeManager.day)
+    AdventureManager.process_guild_day(TimeManager.day, citizens)
     _refresh_kingdom_hud()
+    if is_instance_valid(adventure_panel) and adventure_panel.visible:
+        _refresh_adventure_panel()
     _refresh_diplomacy_panel()
     for child_data in births:
         if citizens.size() >= 32:
@@ -221,10 +224,13 @@ func _refresh_diplomacy_panel() -> void:
         var kingdom_name := str(kingdom.get("name", "Kerajaan"))
         var relation := int(kingdom.get("relation", 0))
         var is_trading := bool(kingdom.get("trade_active", false))
+        var is_at_war := bool(kingdom.get("war_active", false))
         var info := Label.new()
-        info.text = "%s | Hubungan: %d | %s%s" % [
+        info.text = "%s | Hubungan: %d | %s%s%s | Pop %d | Makmur %d%%" % [
             kingdom_name, relation, str(kingdom.get("status", "Neutral")),
-            " | Dagang aktif" if is_trading else ""
+            " | Dagang aktif" if is_trading else "",
+            " | KONFLIK" if is_at_war else "",
+            int(kingdom.get("population", 0)), roundi(float(kingdom.get("prosperity", 0.0)))
         ]
         info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
         diplomacy_content.add_child(info)
