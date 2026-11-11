@@ -48,6 +48,8 @@ func _add_button(parent: VBoxContainer, caption: String, action: Callable) -> vo
 func _start_game() -> void:
     SaveManager.clear_save()
     TimeManager.reset_clock()
+    RelationshipManager.reset()
+    KingdomManager.reset()
     get_tree().change_scene_to_file(WORLD_SCENE)
 
 func _load_game() -> void:
