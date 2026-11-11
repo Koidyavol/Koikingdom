@@ -6,7 +6,7 @@ const ACCENT := Color("#d8b878")
 const TEXT_MAIN := Color("#f3f1eb")
 const TEXT_MUTED := Color("#aab6c6")
 const NPC_IMAGE_PATH := "res://assets/character/npc/aiko/character.png"
-const NPC_PORTRAIT_PATH := "res://assets/character/npc/aiko/portrait.png"
+const NPC_PORTRAIT_PATH := "res://assets/character/npc/aiko/portrait/portrait.png"
 
 var page_host: Control
 var current_page := "Home"
