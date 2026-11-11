@@ -283,7 +283,7 @@ func _open_teacher_profile() -> void:
 	layout.add_child(title)
 
 	var description := Label.new()
-	description.text = "Guru Akademi\\nBertugas mengajar dan membimbing murid kelas 1, 2, dan 3."
+	description.text = "Guru Akademi\nBertugas mengajar dan membimbing murid kelas 1, 2, dan 3."
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.add_theme_color_override("font_color", TEXT_MAIN)
@@ -325,11 +325,11 @@ func _open_academy() -> void:
 	intro.add_theme_color_override("font_color", TEXT_MUTED)
 	layout.add_child(intro)
 
-	_add_academy_section(layout, "GURU AKADEMI", "Haruka Sato (佐藤 春香)\\nGuru yang mengajar dan membimbing seluruh tingkatan kelas.")
+	_add_academy_section(layout, "GURU AKADEMI", "Haruka Sato (佐藤 春香)\nGuru yang mengajar dan membimbing seluruh tingkatan kelas.")
 
-	_add_academy_section(layout, "RUANG KELAS", "Kelas 1 · Materi dasar\\nKelas 2 · Materi lanjutan\\nKelas 3 · Materi tingkat lanjut dan persiapan kelulusan")
+	_add_academy_section(layout, "RUANG KELAS", "Kelas 1 · Materi dasar\nKelas 2 · Materi lanjutan\nKelas 3 · Materi tingkat lanjut dan persiapan kelulusan")
 
-	_add_academy_section(layout, "PAPAN PENGUMUMAN", "Jadwal sekolah: Senin–Sabtu, mulai pukul 08.00.\\nHari Minggu: Libur.\\nUjian semester: setiap 6 bulan.\\nUjian kelulusan: akhir tahun kelas 3.")
+	_add_academy_section(layout, "PAPAN PENGUMUMAN", "Jadwal sekolah: Senin–Sabtu, mulai pukul 08.00.\nHari Minggu: Libur.\nUjian semester: setiap 6 bulan.\nUjian kelulusan: akhir tahun kelas 3.")
 
 	var back := Button.new()
 	back.text = "Kembali ke Pusat Kota"
