@@ -202,23 +202,41 @@ func _check_level_up() -> void:
         _recalculate_equipment_stats()
         last_result += " | LEVEL UP %d!" % level
 
-func use_skill(skill_name: String) -> bool:
+func unlock_skill(skill_name: String) -> bool:
     var required_level := 99
-    var mana_cost := 0
     if skill_name == "Power Strike":
         required_level = 2
-        mana_cost = 10
     elif skill_name == "Guard Stance":
         required_level = 3
-        mana_cost = 8
     elif skill_name == "Healing Light":
         required_level = 4
+    else:
+        last_result = "Skill tidak dikenal"
+        return false
+    if unlocked_skills.has(skill_name):
+        last_result = "Skill sudah dipelajari"
+        return false
+    if level < required_level or skill_points <= 0:
+        last_result = "Butuh level %d dan 1 skill point" % required_level
+        return false
+    skill_points -= 1
+    unlocked_skills.append(skill_name)
+    last_result = "Skill %s berhasil dipelajari" % skill_name
+    return true
+
+func use_skill(skill_name: String) -> bool:
+    var mana_cost := 0
+    if skill_name == "Power Strike":
+        mana_cost = 10
+    elif skill_name == "Guard Stance":
+        mana_cost = 8
+    elif skill_name == "Healing Light":
         mana_cost = 15
     else:
         last_result = "Skill tidak dikenal"
         return false
-    if level < required_level:
-        last_result = "Skill terbuka pada level %d" % required_level
+    if not unlocked_skills.has(skill_name):
+        last_result = "Skill belum dipelajari"
         return false
     if mana < mana_cost:
         last_result = "MP tidak cukup"
@@ -277,8 +295,8 @@ func leave_dungeon() -> void:
     last_result = "Keluar dari dungeon"
 
 func get_summary() -> String:
-    return "Lv.%d | HP %d/%d | ATK %d | DEF %d | EXP %d/%d | Emas %d" % [
-        level, health, max_health, attack, defense, experience, level * 50, gold
+    return "Lv.%d | HP %d/%d | MP %d/%d | ATK %d | DEF %d | EXP %d/%d | Emas %d" % [
+        level, health, max_health, mana, max_mana, attack, defense, experience, level * 50, gold
     ]
 
 func get_inventory_summary() -> String:
