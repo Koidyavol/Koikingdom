@@ -27,6 +27,11 @@ var monster_attack := 0
 var monster_defense := 0
 var dungeon_active := false
 var last_result := "Siap berpetualang"
+var guild_reputation := 0
+var guild_rank := "Pemula"
+var guild_quests: Array[Dictionary] = []
+var monster_is_boss := false
+var _guild_board_day := -1
 
 const EQUIPMENT := {
     "Pedang Besi": {"slot": "weapon", "attack": 6, "defense": 0, "price": 45},
@@ -53,17 +58,21 @@ func enter_dungeon() -> bool:
     dungeon_floor = 1
     health = max_health
     _spawn_monster()
+    _record_quest_progress("floor", dungeon_floor)
     last_result = "Memasuki dungeon"
     return true
 
 func _spawn_monster() -> void:
     var index := mini(MONSTERS.size() - 1, maxi(0, dungeon_floor - 1))
     var template: Dictionary = MONSTERS[index]
-    monster_name = str(template.name)
-    monster_max_health = int(template.hp) + (dungeon_floor - index - 1) * 12
+    monster_is_boss = dungeon_floor % 5 == 0
+    monster_name = ("Boss " if monster_is_boss else "") + str(template.name)
+    var scale := dungeon_floor - index - 1
+    var boss_multiplier := 2 if monster_is_boss else 1
+    monster_max_health = (int(template.hp) + scale * 12) * boss_multiplier
     monster_health = monster_max_health
-    monster_attack = int(template.attack) + (dungeon_floor - index - 1) * 2
-    monster_defense = int(template.defense) + (dungeon_floor - index - 1)
+    monster_attack = (int(template.attack) + scale * 2) * boss_multiplier
+    monster_defense = (int(template.defense) + scale) * boss_multiplier
     
 func attack_monster() -> String:
     if not dungeon_active or monster_health <= 0:
@@ -90,13 +99,20 @@ func _win_battle() -> void:
     var template: Dictionary = MONSTERS[index]
     var gained_exp := int(template.exp) + dungeon_floor * 2
     var gained_gold := int(template.gold) + dungeon_floor
+    if monster_is_boss:
+        gained_exp *= 3
+        gained_gold *= 3
+        guild_reputation += 20
+        last_result = "BOSS DIKALAHKAN! Reputasi guild +20"
     experience += gained_exp
     gold += gained_gold
     _add_loot()
-    last_result = "%s dikalahkan! +%d EXP, +%d emas" % [monster_name, gained_exp, gained_gold]
+    last_result += " | %s dikalahkan! +%d EXP, +%d emas" % [monster_name, gained_exp, gained_gold]
+    _record_quest_progress("kill", 1)
     _check_level_up()
     dungeon_floor += 1
     _spawn_monster()
+    _record_quest_progress("floor", dungeon_floor)
 
 func _add_item(item_name: String, item_type: String, amount: int = 1) -> void:
     for item in inventory:
@@ -112,9 +128,11 @@ func _add_loot() -> void:
         last_result += " | Mendapat Ramuan"
     elif roll < 58:
         _add_item("Bijih Besi", "material")
+        _record_quest_progress("collect", 1)
         last_result += " | Mendapat Bijih Besi"
     elif roll < 70:
         _add_item("Kristal Ajaib", "material")
+        _record_quest_progress("collect", 1)
         last_result += " | Mendapat Kristal"
     elif roll < 78:
         _add_item("Pedang Besi", "equipment")
@@ -294,6 +312,72 @@ func leave_dungeon() -> void:
     monster_health = 0
     last_result = "Keluar dari dungeon"
 
+
+func _update_guild_rank() -> void:
+    if guild_reputation >= 900:
+        guild_rank = "Platinum"
+    elif guild_reputation >= 500:
+        guild_rank = "Emas"
+    elif guild_reputation >= 250:
+        guild_rank = "Perak"
+    elif guild_reputation >= 100:
+        guild_rank = "Perunggu"
+    else:
+        guild_rank = "Pemula"
+
+func _generate_guild_board() -> void:
+    guild_quests = [
+        {"id": "hunt", "title": "Pembasmi Monster", "description": "Kalahkan 3 monster", "kind": "kill", "target": 3, "progress": 0, "reward_exp": 45, "reward_gold": 35, "reward_rep": 15, "accepted": false, "completed": false},
+        {"id": "explore", "title": "Penjelajah Dungeon", "description": "Capai lantai 5 dungeon", "kind": "floor", "target": 5, "progress": 0, "reward_exp": 70, "reward_gold": 50, "reward_rep": 25, "accepted": false, "completed": false},
+        {"id": "gather", "title": "Pengumpul Material", "description": "Temukan 3 material", "kind": "collect", "target": 3, "progress": 0, "reward_exp": 35, "reward_gold": 30, "reward_rep": 12, "accepted": false, "completed": false}
+    ]
+
+func accept_guild_quest(quest_id: String) -> bool:
+    for quest in guild_quests:
+        if str(quest.id) == quest_id:
+            if bool(quest.accepted) or bool(quest.completed):
+                last_result = "Quest sudah diambil atau selesai"
+                return false
+            for other in guild_quests:
+                if bool(other.accepted) and not bool(other.completed):
+                    last_result = "Selesaikan quest aktif terlebih dahulu"
+                    return false
+            quest.accepted = true
+            last_result = "Quest diterima: " + str(quest.title)
+            return true
+    last_result = "Quest tidak ditemukan"
+    return false
+
+func _record_quest_progress(kind: String, amount: int) -> void:
+    for quest in guild_quests:
+        if bool(quest.get("accepted", false)) and not bool(quest.get("completed", false)) and str(quest.get("kind", "")) == kind:
+            quest.progress = mini(int(quest.target), int(quest.progress) + amount)
+            if int(quest.progress) >= int(quest.target):
+                quest.completed = true
+                last_result += " | Quest selesai: " + str(quest.title)
+
+func claim_guild_quest(quest_id: String) -> bool:
+    for quest in guild_quests:
+        if str(quest.id) == quest_id and bool(quest.get("completed", false)):
+            experience += int(quest.reward_exp)
+            gold += int(quest.reward_gold)
+            guild_reputation += int(quest.reward_rep)
+            _update_guild_rank()
+            last_result = "Hadiah quest diterima: +%d EXP, +%d emas, +%d reputasi" % [int(quest.reward_exp), int(quest.reward_gold), int(quest.reward_rep)]
+            _check_level_up()
+            _generate_guild_board()
+            return true
+    last_result = "Quest belum selesai"
+    return false
+
+func process_guild_day(day: int) -> void:
+    if guild_quests.is_empty():
+        _generate_guild_board()
+    _guild_board_day = day
+
+func get_guild_summary() -> String:
+    return "Guild Petualang | Rank %s | Reputasi %d" % [guild_rank, guild_reputation]
+
 func get_summary() -> String:
     return "Lv.%d | HP %d/%d | MP %d/%d | ATK %d | DEF %d | EXP %d/%d | Emas %d" % [
         level, health, max_health, mana, max_mana, attack, defense, experience, level * 50, gold
@@ -323,7 +407,10 @@ func get_save_data() -> Dictionary:
         "dungeon_floor": dungeon_floor, "monster_name": monster_name,
         "monster_health": monster_health, "monster_max_health": monster_max_health,
         "monster_attack": monster_attack, "monster_defense": monster_defense,
-        "dungeon_active": dungeon_active, "last_result": last_result
+        "dungeon_active": dungeon_active, "last_result": last_result,
+        "guild_reputation": guild_reputation, "guild_rank": guild_rank,
+        "guild_quests": guild_quests.duplicate(true), "guild_board_day": _guild_board_day,
+        "monster_is_boss": monster_is_boss
     }
 
 func apply_state(state: Dictionary) -> void:
@@ -359,6 +446,17 @@ func apply_state(state: Dictionary) -> void:
     monster_defense = maxi(0, int(state.get("monster_defense", 0)))
     dungeon_active = bool(state.get("dungeon_active", false))
     last_result = str(state.get("last_result", "Siap berpetualang"))
+    guild_reputation = maxi(0, int(state.get("guild_reputation", 0)))
+    guild_rank = str(state.get("guild_rank", "Pemula"))
+    guild_quests.clear()
+    for quest in state.get("guild_quests", []):
+        if quest is Dictionary:
+            guild_quests.append(quest.duplicate(true))
+    _guild_board_day = int(state.get("guild_board_day", -1))
+    monster_is_boss = bool(state.get("monster_is_boss", false))
+    _update_guild_rank()
+    if guild_quests.is_empty():
+        _generate_guild_board()
     _recalculate_equipment_stats()
 
 func reset() -> void:
@@ -389,3 +487,8 @@ func reset() -> void:
     monster_defense = 0
     dungeon_active = false
     last_result = "Siap berpetualang"
+    guild_reputation = 0
+    guild_rank = "Pemula"
+    guild_quests.clear()
+    _guild_board_day = -1
+    monster_is_boss = false
