@@ -104,6 +104,7 @@ func _win_battle() -> void:
         gained_exp *= 3
         gained_gold *= 3
         guild_reputation += 20
+        _update_guild_rank()
     experience += gained_exp
     gold += gained_gold
     _add_loot()
@@ -173,6 +174,30 @@ func equip_item(item_name: String) -> bool:
     if int(inventory[inventory_index]["amount"]) <= 0:
         inventory.remove_at(inventory_index)
     last_result = "%s berhasil dipakai" % item_name
+    return true
+
+
+func buy_shop_item(item_name: String) -> bool:
+    var prices := {
+        "Pedang Besi": 45,
+        "Pedang Baja": 110,
+        "Jubah Kulit": 40,
+        "Zirah Besi": 100,
+        "Ramuan Kecil": 18
+    }
+    if not prices.has(item_name):
+        last_result = "Barang tidak tersedia di toko"
+        return false
+    var price := int(prices[item_name])
+    if gold < price:
+        last_result = "Emas tidak cukup. Butuh %d emas" % price
+        return false
+    gold -= price
+    if item_name == "Ramuan Kecil":
+        _add_item(item_name, "potion")
+    else:
+        _add_item(item_name, "equipment")
+    last_result = "%s dibeli seharga %d emas" % [item_name, price]
     return true
 
 func craft_item(item_name: String) -> bool:
