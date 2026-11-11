@@ -178,15 +178,16 @@ func _process_neighbor_kingdoms(day_number: int) -> void:
         var population := maxi(1, int(kingdom.get("population", 100)))
         var food_reserve := maxi(0, int(kingdom.get("food", 100)))
         var farmers := maxi(2, int(population * 0.12))
-        food_reserve += farmers * 3 - int(population * 2 / 10)
+        food_reserve = mini(population * 8, maxi(0, food_reserve + farmers * 3 - int(population * 2 / 10)))
         var local_treasury := maxi(0, int(kingdom.get("treasury", 100)))
-        local_treasury += maxi(1, int(population * 0.025))
+        local_treasury = mini(100000, local_treasury + maxi(1, int(population * 0.025)))
         var prosperity := clampf(float(kingdom.get("prosperity", 50.0)), 0.0, 100.0)
         if food_reserve <= 0:
             population = maxi(40, population - maxi(1, int(population * 0.01)))
             prosperity = maxf(0.0, prosperity - 1.5)
-        elif food_reserve > population:
-            population = mini(600, population + maxi(1, int(population * 0.003)))
+        elif food_reserve > int(population * 1.5):
+            if day_number % 30 == 0:
+                population = mini(600, population + 1)
             prosperity = minf(100.0, prosperity + 0.25)
         else:
             prosperity = minf(100.0, prosperity + 0.05)
