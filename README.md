@@ -21,6 +21,8 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Basic kingdom government with an automatically selected King, Queen, Heir, and council
 - Daily treasury, food production/consumption, tax income, happiness, and stability simulation
 - Kingdom status and citizen royal/council roles appear in the world HUD and citizen profiles
+- Guard garrison, up to three Imperial Knights, defense rating, and military morale are simulated and saved
+- Garrison upkeep is paid from the royal treasury; unpaid upkeep reduces morale and stability
 
 ## Run
 1. Open this repository in Godot 4.3 or newer.
