@@ -422,7 +422,7 @@ func _on_map_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
 			map_dragging = false
 		scroll.accept_event()
 	elif event is InputEventMouseMotion and map_dragging:
-		var delta := event.position - map_drag_last
+		var drag_delta: Vector2 = event.position - map_drag_last
 		scroll.scroll_horizontal = maxi(0, scroll.scroll_horizontal - int(drag_delta.x))
 		scroll.scroll_vertical = maxi(0, scroll.scroll_vertical - int(drag_delta.y))
 		map_drag_last = event.position
