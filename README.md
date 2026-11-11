@@ -58,7 +58,13 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 2. Import the project and run `scenes/main/MainMenu.tscn`.
 
 ## Android
-Android export is not configured yet. The GitHub Actions workflow currently performs a project validation attempt and uploads source artifacts; it is not an APK build.
+- Android export preset: `export_presets.cfg` (package ID: `com.koikingdom.game`)
+- GitHub Actions workflow: `.github/workflows/android-apk.yml`
+- Manual workflow dispatch builds a signed debug APK for device testing and uploads it as the `Koi-Kingdom-Android-APK` artifact
+- CI checks project import and headless startup before exporting
+- APK targets ARMv7 and ARM64 for broader Android device compatibility
+- The CI signing key is generated temporarily for each build; this is a development/test APK, not a Play Store release
+- Download the APK from the completed workflow run's Artifacts section
 
 ## Roadmap
 1. Expand NPC identity and simulation
