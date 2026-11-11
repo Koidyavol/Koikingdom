@@ -121,7 +121,7 @@ func _input(event: InputEvent) -> void:
         tap_position = get_global_mouse_position()
     elif event is InputEventScreenTouch and event.pressed:
         tapped = true
-        tap_position = get_global_mouse_position()
+        tap_position = get_canvas_transform().affine_inverse() * event.position
     if tapped and global_position.distance_to(tap_position) < 28.0:
         selected.emit(get_profile())
 
