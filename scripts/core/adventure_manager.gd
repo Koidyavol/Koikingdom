@@ -32,6 +32,9 @@ var guild_rank := "Pemula"
 var guild_quests: Array[Dictionary] = []
 var monster_is_boss := false
 var _guild_board_day := -1
+var guild_funds := 100
+var guild_expeditions := 0
+var guild_last_report := "Guild petualang siap beroperasi"
 
 const EQUIPMENT := {
     "Pedang Besi": {"slot": "weapon", "attack": 6, "defense": 0, "price": 45},
@@ -395,13 +398,35 @@ func claim_guild_quest(quest_id: String) -> bool:
     last_result = "Quest belum selesai"
     return false
 
-func process_guild_day(day: int) -> void:
+func process_guild_day(day: int, citizens: Array) -> void:
     if guild_quests.is_empty():
         _generate_guild_board()
+    if day % 3 == 0:
+        var members: Array = []
+        for citizen in citizens:
+            if is_instance_valid(citizen) and str(citizen.job) == "Adventurer" and int(citizen.age) >= 18:
+                members.append(citizen)
+        if not members.is_empty():
+            var member = members[randi_range(0, members.size() - 1)]
+            var success_chance := clampf(0.55 + float(member.adventurer_level) * 0.03, 0.55, 0.9)
+            member.expedition_count += 1
+            guild_expeditions += 1
+            if randf() <= success_chance:
+                var reward := randi_range(12, 25) + int(member.adventurer_level) * 2
+                guild_funds += reward
+                guild_reputation += 2
+                member.adventurer_experience += 15
+                if member.adventurer_experience >= member.adventurer_level * 40:
+                    member.adventurer_experience -= member.adventurer_level * 40
+                    member.adventurer_level += 1
+                guild_last_report = "%s sukses ekspedisi! Guild +%d emas, reputasi +2" % [str(member.npc_name), reward]
+            else:
+                guild_last_report = "%s gagal menyelesaikan ekspedisi hari ini" % str(member.npc_name)
+            _update_guild_rank()
     _guild_board_day = day
 
 func get_guild_summary() -> String:
-    return "Guild Petualang | Rank %s | Reputasi %d" % [guild_rank, guild_reputation]
+    return "Guild Petualang | Rank %s | Reputasi %d | Dana %d\nEkspedisi: %d | %s" % [guild_rank, guild_reputation, guild_funds, guild_expeditions, guild_last_report]
 
 func get_summary() -> String:
     return "Lv.%d | HP %d/%d | MP %d/%d | ATK %d | DEF %d | EXP %d/%d | Emas %d" % [
@@ -435,7 +460,9 @@ func get_save_data() -> Dictionary:
         "dungeon_active": dungeon_active, "last_result": last_result,
         "guild_reputation": guild_reputation, "guild_rank": guild_rank,
         "guild_quests": guild_quests.duplicate(true), "guild_board_day": _guild_board_day,
-        "monster_is_boss": monster_is_boss
+        "monster_is_boss": monster_is_boss,
+        "guild_funds": guild_funds, "guild_expeditions": guild_expeditions,
+        "guild_last_report": guild_last_report
     }
 
 func apply_state(state: Dictionary) -> void:
@@ -479,6 +506,9 @@ func apply_state(state: Dictionary) -> void:
             guild_quests.append(quest.duplicate(true))
     _guild_board_day = int(state.get("guild_board_day", -1))
     monster_is_boss = bool(state.get("monster_is_boss", false))
+    guild_funds = maxi(0, int(state.get("guild_funds", 100)))
+    guild_expeditions = maxi(0, int(state.get("guild_expeditions", 0)))
+    guild_last_report = str(state.get("guild_last_report", "Guild petualang siap beroperasi"))
     _update_guild_rank()
     if guild_quests.is_empty():
         _generate_guild_board()
@@ -517,3 +547,6 @@ func reset() -> void:
     guild_quests.clear()
     _guild_board_day = -1
     monster_is_boss = false
+    guild_funds = 100
+    guild_expeditions = 0
+    guild_last_report = "Guild petualang siap beroperasi"
