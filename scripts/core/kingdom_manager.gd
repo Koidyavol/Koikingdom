@@ -16,6 +16,8 @@ var defense_rating := 0
 var military_morale: float = 75.0
 var foreign_kingdoms: Array[Dictionary] = []
 var last_processed_day := 0
+var world_history: Array[String] = []
+var world_day := 1
 
 func process_day(citizens: Array, current_day: int) -> void:
     _ensure_foreign_kingdoms()
