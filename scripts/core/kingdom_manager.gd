@@ -74,6 +74,9 @@ func assign_government(citizens: Array) -> void:
         queen_id = ""
         heir_id = ""
         council_ids.clear()
+        imperial_knight_ids.clear()
+        garrison_count = 0
+        defense_rating = 0
         return
     var king = _oldest_by_gender(adults, "Male")
     var queen = _oldest_by_gender(adults, "Female")
@@ -134,7 +137,7 @@ func get_role(citizen_id: String) -> String:
     return "Citizen"
 
 func get_summary() -> String:
-    return "Kerajaan | Emas %d | Pangan %d | Pajak %d%% | Bahagia %d%% | Stabil %d%%\\nGarnisun %d | Ksatria %d | Pertahanan %d | Moral %d%%" % [
+    return "Kerajaan | Emas %d | Pangan %d | Pajak %d%% | Bahagia %d%% | Stabil %d%%\nGarnisun %d | Ksatria %d | Pertahanan %d | Moral %d%%" % [
         treasury, food, roundi(tax_rate * 100.0), roundi(happiness), roundi(stability),
         garrison_count, imperial_knight_ids.size(), defense_rating, roundi(military_morale)
     ]
