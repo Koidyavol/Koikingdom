@@ -149,9 +149,9 @@ func _ensure_foreign_kingdoms() -> void:
     if not foreign_kingdoms.is_empty():
         return
     foreign_kingdoms = [
-        {"id": "sakura", "name": "Sakura", "relation": 20, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 180, "food": 150, "population": 120, "prosperity": 62},
-        {"id": "tsukiyo", "name": "Tsukiyo", "relation": 5, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 220, "food": 130, "population": 105, "prosperity": 58},
-        {"id": "akatsuki", "name": "Akatsuki", "relation": -10, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 160, "food": 190, "population": 135, "prosperity": 54}
+        {"id": "sakura", "name": "Sakura", "relation": 20, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 180, "food": 150, "population": 120, "prosperity": 62, "war_active": false, "war_days": 0, "migration_total": 0},
+        {"id": "tsukiyo", "name": "Tsukiyo", "relation": 5, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 220, "food": 130, "population": 105, "prosperity": 58, "war_active": false, "war_days": 0, "migration_total": 0},
+        {"id": "akatsuki", "name": "Akatsuki", "relation": -10, "trade_active": false, "trade_days": 0, "status": "Neutral", "treasury": 160, "food": 190, "population": 135, "prosperity": 54, "war_active": false, "war_days": 0, "migration_total": 0}
     ]
 
 func _process_diplomacy_day(day_number: int) -> void:
@@ -170,6 +170,19 @@ func _process_diplomacy_day(day_number: int) -> void:
                 kingdom["trade_active"] = false
                 kingdom["trade_days"] = 0
         kingdom["status"] = "Friendly" if relation >= 60 else ("Tense" if relation <= -40 else "Neutral")
+        var at_war := bool(kingdom.get("war_active", false))
+        if at_war:
+            kingdom["war_days"] = int(kingdom.get("war_days", 0)) + 1
+            if int(kingdom["war_days"]) >= 30 or relation >= -20:
+                kingdom["war_active"] = false
+                kingdom["war_days"] = 0
+                kingdom["relation"] = maxi(-100, relation - 10)
+                _record_world_event("Gencatan senjata dengan %s setelah konflik perbatasan" % str(kingdom.get("name", "kerajaan")))
+        elif day_number % 30 == 0 and relation <= -65 and not trade_active and randf() < 0.20:
+            kingdom["war_active"] = true
+            kingdom["war_days"] = 0
+            kingdom["trade_active"] = false
+            _record_world_event("Konflik perbatasan pecah dengan %s" % str(kingdom.get("name", "kerajaan")))
 
 func _process_neighbor_kingdoms(day_number: int) -> void:
     world_day = day_number
@@ -195,6 +208,20 @@ func _process_neighbor_kingdoms(day_number: int) -> void:
             food_reserve = maxi(0, food_reserve - 1)
             local_treasury += 2
             prosperity = minf(100.0, prosperity + 0.1)
+        if day_number % 30 == 0:
+            if bool(kingdom.get("war_active", false)):
+                population = maxi(40, population - maxi(1, int(population * 0.005)))
+                local_treasury = maxi(0, local_treasury - 8)
+                prosperity = maxf(0.0, prosperity - 2.0)
+            elif prosperity >= 65.0 and food_reserve > int(population * 2):
+                population = mini(600, population + 2)
+                kingdom["migration_total"] = int(kingdom.get("migration_total", 0)) + 2
+                _record_world_event("Migrasi masuk ke %s: +2 penduduk" % str(kingdom.get("name", "kerajaan")))
+            elif prosperity < 35.0 or food_reserve < int(population * 0.3):
+                var migration_out := mini(3, maxi(1, int(population * 0.01)))
+                population = maxi(40, population - migration_out)
+                kingdom["migration_total"] = int(kingdom.get("migration_total", 0)) - migration_out
+                _record_world_event("Migrasi keluar dari %s: -%d penduduk" % [str(kingdom.get("name", "kerajaan")), migration_out])
         kingdom["population"] = population
         kingdom["food"] = food_reserve
         kingdom["treasury"] = local_treasury
@@ -255,11 +282,12 @@ func get_diplomacy_summary() -> String:
     var parts: PackedStringArray = []
     for kingdom in foreign_kingdoms:
         var trade_text := " | Dagang" if bool(kingdom.get("trade_active", false)) else ""
-        parts.append("%s: %d (%s)%s" % [
+        var war_text := " | KONFLIK" if bool(kingdom.get("war_active", false)) else ""
+        parts.append("%s: %d (%s)%s%s" % [
             str(kingdom.get("name", "Unknown")),
             int(kingdom.get("relation", 0)),
             str(kingdom.get("status", "Neutral")) + " | Pop " + str(kingdom.get("population", 100)) + " | Makmur " + str(roundi(float(kingdom.get("prosperity", 50.0)))) + "%",
-            trade_text
+            trade_text, war_text
         ])
     return "Diplomasi: " + "  •  ".join(parts)
 
