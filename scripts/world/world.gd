@@ -326,6 +326,15 @@ func _refresh_adventure_panel() -> void:
         if str(item.get("type", "")) == "equipment":
             _add_adventure_action(adventure_content, "Pakai: " + item_name, func(): _adventure_equip(item_name))
 
+    var shop_title := Label.new()
+    shop_title.text = "TOKO PERLENGKAPAN"
+    adventure_content.add_child(shop_title)
+    _add_adventure_action(adventure_content, "Beli Ramuan Kecil (18 emas)", func(): _adventure_buy("Ramuan Kecil"))
+    _add_adventure_action(adventure_content, "Beli Pedang Besi (45 emas)", func(): _adventure_buy("Pedang Besi"))
+    _add_adventure_action(adventure_content, "Beli Pedang Baja (110 emas)", func(): _adventure_buy("Pedang Baja"))
+    _add_adventure_action(adventure_content, "Beli Jubah Kulit (40 emas)", func(): _adventure_buy("Jubah Kulit"))
+    _add_adventure_action(adventure_content, "Beli Zirah Besi (100 emas)", func(): _adventure_buy("Zirah Besi"))
+
     var crafting_title := Label.new()
     crafting_title.text = "CRAFTING BLACKSMITH"
     adventure_content.add_child(crafting_title)
@@ -381,6 +390,10 @@ func _add_adventure_action(parent: VBoxContainer, caption: String, action: Calla
     button.text = caption
     parent.add_child(button)
     button.pressed.connect(action)
+
+func _adventure_buy(item_name: String) -> void:
+    AdventureManager.buy_shop_item(item_name)
+    _refresh_adventure_panel()
 
 func _adventure_accept_quest(quest_id: String) -> void:
     AdventureManager.accept_guild_quest(quest_id)
