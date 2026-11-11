@@ -79,11 +79,11 @@ jobs:
           godot --headless --editor --path . --quit
           TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
           test -s "$TEMPLATE_DIR/android_source.zip"
-          mkdir -p android
-          unzip -oq "$TEMPLATE_DIR/android_source.zip" -d android
-          test -f android/build.gradle
-          test -f android/settings.gradle
-          echo "Godot Android Gradle build template installed from the matching 4.4.1 export template."
+          mkdir -p android/build
+          unzip -oq "$TEMPLATE_DIR/android_source.zip" -d android/build
+          test -f android/build/build.gradle
+          test -f android/build/settings.gradle
+          echo "Godot Android Gradle build template installed at android/build/."
 
       - name: Export and validate APK
         shell: bash
