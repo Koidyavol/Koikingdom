@@ -4,6 +4,11 @@ var level := 1
 var experience := 0
 var health := 100
 var max_health := 100
+var mana := 40
+var max_mana := 40
+var skill_points := 0
+var unlocked_skills: Array[String] = []
+var guard_stance := false
 var attack := 12
 var defense := 5
 var gold := 0
@@ -188,11 +193,66 @@ func _check_level_up() -> void:
         experience -= level * 50
         level += 1
         max_health += 12
+        max_mana += 5
+        mana = max_mana
+        skill_points += 1
         health = max_health
         base_attack += 3
         base_defense += 2
         _recalculate_equipment_stats()
         last_result += " | LEVEL UP %d!" % level
+
+func use_skill(skill_name: String) -> bool:
+    var required_level := 99
+    var mana_cost := 0
+    if skill_name == "Power Strike":
+        required_level = 2
+        mana_cost = 10
+    elif skill_name == "Guard Stance":
+        required_level = 3
+        mana_cost = 8
+    elif skill_name == "Healing Light":
+        required_level = 4
+        mana_cost = 15
+    else:
+        last_result = "Skill tidak dikenal"
+        return false
+    if level < required_level:
+        last_result = "Skill terbuka pada level %d" % required_level
+        return false
+    if mana < mana_cost:
+        last_result = "MP tidak cukup"
+        return false
+    if not dungeon_active:
+        last_result = "Skill hanya dapat digunakan di dungeon"
+        return false
+    mana -= mana_cost
+    if skill_name == "Power Strike":
+        var damage := maxi(1, attack * 2 - monster_defense)
+        monster_health = maxi(0, monster_health - damage)
+        last_result = "Power Strike memberikan %d damage" % damage
+        if monster_health <= 0:
+            _win_battle()
+            return true
+    elif skill_name == "Guard Stance":
+        guard_stance = true
+        last_result = "Guard Stance aktif"
+    elif skill_name == "Healing Light":
+        var restored := mini(45, max_health - health)
+        health += restored
+        last_result = "Healing Light memulihkan %d HP" % restored
+    var incoming := maxi(1, monster_attack + randi_range(-2, 2) - defense)
+    if guard_stance:
+        incoming = maxi(1, int(ceil(incoming * 0.5)))
+        guard_stance = false
+    health = maxi(0, health - incoming)
+    if health <= 0:
+        dungeon_active = false
+        health = maxi(1, int(max_health / 2))
+        last_result += " | Mundur dari dungeon"
+    else:
+        last_result += " | Monster membalas %d" % incoming
+    return true
 
 func use_potion() -> bool:
     if health >= max_health:
@@ -236,6 +296,8 @@ func get_inventory_summary() -> String:
 func get_save_data() -> Dictionary:
     return {
         "level": level, "experience": experience, "health": health, "max_health": max_health,
+        "mana": mana, "max_mana": max_mana, "skill_points": skill_points,
+        "unlocked_skills": unlocked_skills, "guard_stance": guard_stance,
         "attack": attack, "defense": defense, "base_attack": base_attack, "base_defense": base_defense,
         "weapon_bonus": weapon_bonus, "armor_bonus": armor_bonus,
         "gold": gold, "weapon_name": weapon_name, "armor_name": armor_name,
@@ -251,6 +313,13 @@ func apply_state(state: Dictionary) -> void:
     experience = maxi(0, int(state.get("experience", 0)))
     max_health = maxi(1, int(state.get("max_health", 100)))
     health = clampi(int(state.get("health", max_health)), 1, max_health)
+    max_mana = maxi(1, int(state.get("max_mana", 40)))
+    mana = clampi(int(state.get("mana", max_mana)), 0, max_mana)
+    skill_points = maxi(0, int(state.get("skill_points", 0)))
+    unlocked_skills.clear()
+    for skill in state.get("unlocked_skills", []):
+        unlocked_skills.append(str(skill))
+    guard_stance = bool(state.get("guard_stance", false))
     base_attack = maxi(1, int(state.get("base_attack", state.get("attack", 12))))
     base_defense = maxi(0, int(state.get("base_defense", state.get("defense", 5))))
     weapon_bonus = maxi(0, int(state.get("weapon_bonus", 0)))
@@ -279,6 +348,11 @@ func reset() -> void:
     experience = 0
     health = 100
     max_health = 100
+    mana = 40
+    max_mana = 40
+    skill_points = 0
+    unlocked_skills.clear()
+    guard_stance = false
     attack = 12
     defense = 5
     gold = 0
