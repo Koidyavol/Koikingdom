@@ -332,6 +332,13 @@ func _refresh_adventure_panel() -> void:
     _add_adventure_action(adventure_content, "Buat Pedang Besi (3 Bijih + 1 Kristal)", func(): _adventure_craft("Pedang Besi"))
     _add_adventure_action(adventure_content, "Buat Jubah Kulit (2 Bijih)", func(): _adventure_craft("Jubah Kulit"))
 
+    var skill_heading := Label.new()
+    skill_heading.text = "SKILL (Poin: %d)" % AdventureManager.skill_points
+    adventure_content.add_child(skill_heading)
+    _add_adventure_action(adventure_content, "Pelajari Power Strike (Lv.2)", func(): _adventure_unlock_skill("Power Strike"))
+    _add_adventure_action(adventure_content, "Pelajari Guard Stance (Lv.3)", func(): _adventure_unlock_skill("Guard Stance"))
+    _add_adventure_action(adventure_content, "Pelajari Healing Light (Lv.4)", func(): _adventure_unlock_skill("Healing Light"))
+
     var result := Label.new()
     result.text = AdventureManager.last_result
     result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -345,6 +352,9 @@ func _refresh_adventure_panel() -> void:
         ]
         adventure_content.add_child(monster)
         _add_adventure_action(adventure_content, "Serang", _adventure_attack)
+        for skill_name in ["Power Strike", "Guard Stance", "Healing Light"]:
+            if AdventureManager.unlocked_skills.has(skill_name):
+                _add_adventure_action(adventure_content, "Gunakan " + skill_name, func(): _adventure_use_skill(skill_name))
         _add_adventure_action(adventure_content, "Gunakan ramuan", _adventure_potion)
         _add_adventure_action(adventure_content, "Keluar dungeon", _adventure_leave)
     else:
@@ -368,6 +378,14 @@ func _adventure_attack() -> void:
 
 func _adventure_potion() -> void:
     AdventureManager.use_potion()
+    _refresh_adventure_panel()
+
+func _adventure_unlock_skill(skill_name: String) -> void:
+    AdventureManager.unlock_skill(skill_name)
+    _refresh_adventure_panel()
+
+func _adventure_use_skill(skill_name: String) -> void:
+    AdventureManager.use_skill(skill_name)
     _refresh_adventure_panel()
 
 func _adventure_equip(item_name: String) -> void:
