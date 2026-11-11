@@ -136,9 +136,13 @@ func equip_item(item_name: String) -> bool:
         return false
     var item: Dictionary = EQUIPMENT[item_name]
     if str(item.slot) == "weapon":
+        if weapon_name != "Pedang Kayu" and EQUIPMENT.has(weapon_name):
+            _add_item(weapon_name, "equipment")
         weapon_name = item_name
         weapon_bonus = int(item.attack)
     else:
+        if armor_name != "Pakaian Petualang" and EQUIPMENT.has(armor_name):
+            _add_item(armor_name, "equipment")
         armor_name = item_name
         armor_bonus = int(item.defense)
     _recalculate_equipment_stats()
@@ -185,11 +189,15 @@ func _check_level_up() -> void:
         level += 1
         max_health += 12
         health = max_health
-        attack += 3
-        defense += 2
+        base_attack += 3
+        base_defense += 2
+        _recalculate_equipment_stats()
         last_result += " | LEVEL UP %d!" % level
 
 func use_potion() -> bool:
+    if health >= max_health:
+        last_result = "HP masih penuh"
+        return false
     for index in range(inventory.size()):
         if str(inventory[index].get("type", "")) == "potion":
             health = mini(max_health, health + 35)
