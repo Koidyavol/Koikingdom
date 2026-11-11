@@ -28,6 +28,9 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Neighboring kingdoms simulate population, food reserves, treasury, and prosperity each in-game day
 - Active trade routes influence neighboring kingdom resources and prosperity
 - World history records monthly demographic and prosperity reports and persists in saves
+- Neighboring kingdoms have periodic migration based on food reserves and prosperity, with migration totals persisted in world state
+- Abstract border conflicts can emerge from very poor relations, temporarily affecting population, treasury, trade, and prosperity before a ceasefire
+- Diplomacy panel displays each neighboring kingdom's population, prosperity, trade status, and active conflict status
 - Relations drift over time; trade agreements generate daily gold and food
 - Diplomacy actions support improving relations, proposing trade, and ending trade
 - In-game diplomacy panel exposes gift, trade, and tax-policy controls on touch devices
