@@ -40,6 +40,8 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Adventurer guild board with monster-hunt, dungeon-exploration, and material-gathering quests
 - Quest acceptance, progress tracking, claimable EXP/gold/reputation rewards, and five guild ranks
 - Dungeon bosses appear every five floors and award increased rewards and guild reputation
+- Two starting citizens are assigned as autonomous guild adventurers, with schedules that send them to exploration areas
+- Guild members conduct autonomous expeditions every three in-game days, earning guild funds and reputation and gaining individual levels
 - Equipment and potion shop with gold prices, purchase validation, and inventory delivery
 - Level-up stat increases persist independently from equipment bonuses
 - Adventure stats, dungeon progress, equipment labels, and inventory persist in saves
