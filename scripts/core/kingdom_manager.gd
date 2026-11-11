@@ -44,7 +44,9 @@ func process_day(citizens: Array, current_day: int) -> void:
         food += farmers * 4 - population * 2
         var taxable_workers := farmers + merchants + workers
         treasury += 3 + int(float(taxable_workers) * 2.0 * tax_rate * 10.0)
-        _process_diplomacy_day(current_day - elapsed + _day + 1)
+        var simulated_day := current_day - elapsed + _day + 1
+        _process_diplomacy_day(simulated_day)
+        _process_neighbor_kingdoms(simulated_day)
         var upkeep := garrison_count + imperial_knight_ids.size() * 2
         if treasury >= upkeep:
             treasury -= upkeep
@@ -168,6 +170,47 @@ func _process_diplomacy_day(day_number: int) -> void:
                 kingdom["trade_active"] = false
                 kingdom["trade_days"] = 0
         kingdom["status"] = "Friendly" if relation >= 60 else ("Tense" if relation <= -40 else "Neutral")
+
+func _process_neighbor_kingdoms(day_number: int) -> void:
+    world_day = day_number
+    for index in range(foreign_kingdoms.size()):
+        var kingdom: Dictionary = foreign_kingdoms[index]
+        var population := maxi(1, int(kingdom.get("population", 100)))
+        var food_reserve := maxi(0, int(kingdom.get("food", 100)))
+        var farmers := maxi(2, int(population * 0.12))
+        food_reserve += farmers * 3 - int(population * 2 / 10)
+        var local_treasury := maxi(0, int(kingdom.get("treasury", 100)))
+        local_treasury += maxi(1, int(population * 0.025))
+        var prosperity := clampf(float(kingdom.get("prosperity", 50.0)), 0.0, 100.0)
+        if food_reserve <= 0:
+            population = maxi(40, population - maxi(1, int(population * 0.01)))
+            prosperity = maxf(0.0, prosperity - 1.5)
+        elif food_reserve > population:
+            population = mini(600, population + maxi(1, int(population * 0.003)))
+            prosperity = minf(100.0, prosperity + 0.25)
+        else:
+            prosperity = minf(100.0, prosperity + 0.05)
+        if bool(kingdom.get("trade_active", false)) and int(kingdom.get("relation", 0)) >= 30 and food_reserve > 0:
+            food_reserve = maxi(0, food_reserve - 1)
+            local_treasury += 2
+            prosperity = minf(100.0, prosperity + 0.1)
+        kingdom["population"] = population
+        kingdom["food"] = food_reserve
+        kingdom["treasury"] = local_treasury
+        kingdom["prosperity"] = prosperity
+        foreign_kingdoms[index] = kingdom
+        if day_number % 30 == 0:
+            _record_world_event("%s: populasi %d, kemakmuran %d%%" % [str(kingdom.get("name", "Kerajaan")), population, roundi(prosperity)])
+
+func _record_world_event(event_text: String) -> void:
+    world_history.append("Hari %d: %s" % [world_day, event_text])
+    while world_history.size() > 12:
+        world_history.pop_front()
+
+func get_world_history_summary() -> String:
+    if world_history.is_empty():
+        return "Belum ada catatan sejarah dunia."
+    return "SEJARAH DUNIA\n" + "\n".join(world_history)
 
 func propose_trade(kingdom_id: String) -> bool:
     for index in range(foreign_kingdoms.size()):
