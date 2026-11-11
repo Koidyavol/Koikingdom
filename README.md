@@ -28,6 +28,12 @@ Native Android-oriented 2D life-simulation RPG built with Godot 4.3.
 - Relations drift over time; trade agreements generate daily gold and food
 - Diplomacy actions support improving relations, proposing trade, and ending trade
 - In-game diplomacy panel exposes gift, trade, and tax-policy controls on touch devices
+- Adventure progression with level, experience, health, attack, defense, and gold
+- Dungeon floors with scaling fantasy monsters and turn-based player combat
+- Dungeon victories award experience, gold, and random potion/material drops
+- Inventory tracks potions and materials; potions restore health
+- Adventure stats, dungeon progress, equipment labels, and inventory persist in saves
+- Touch-friendly adventure panel provides dungeon entry, attack, potion, and exit actions
 
 ## Run
 1. Open this repository in Godot 4.3 or newer.
@@ -40,5 +46,6 @@ Android export is not configured yet. The GitHub Actions workflow currently perf
 1. Expand NPC identity and simulation
 2. Relationships, friendship, dating, family, and generations
 3. Expand kingdom roles, leadership, economy, and diplomacy
-4. Combat, dungeons, crafting, and exploration
-5. Android export and performance testing
+4. Expand adventure, equipment, crafting, and exploration
+5. Multi-kingdom world simulation, trade routes, migration, and history
+6. Android export and performance testing
