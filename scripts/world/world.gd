@@ -38,6 +38,7 @@ func _ready() -> void:
     RelationshipManager.apply_state(saved.get("relationships", {}))
     KingdomManager.apply_state(saved.get("kingdom", {}))
     _spawn_npcs(saved.get("citizens", []))
+    KingdomManager.process_day(citizens, TimeManager.day)
     _last_family_day = TimeManager.day
     _build_hud()
     queue_redraw()
