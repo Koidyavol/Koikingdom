@@ -100,6 +100,7 @@ func _simulate_family_day() -> void:
         child.setup(child_data)
         child.selected.connect(_show_citizen_profile)
         citizens.append(child)
+    KingdomManager.assign_government(citizens)
 
 func _make_citizen(index: int) -> Dictionary:
     var gender := "Female" if randi() % 2 == 0 else "Male"
@@ -146,14 +147,14 @@ func _build_hud() -> void:
 
     kingdom_label = Label.new()
     kingdom_label.text = KingdomManager.get_summary()
-    kingdom_label.position = Vector2(16, 158)
+    kingdom_label.position = Vector2(16, 190)
     kingdom_label.add_theme_color_override("font_color", Color("#f2d9a6"))
     kingdom_label.add_theme_font_size_override("font_size", 13)
     hud.add_child(kingdom_label)
 
     var hint := Label.new()
     hint.text = "WASD / tombol arah untuk bergerak"
-    hint.position = Vector2(16, 188)
+    hint.position = Vector2(16, 218)
     hint.add_theme_color_override("font_color", Color.WHITE)
     hud.add_child(hint)
     _add_touch_controls()
