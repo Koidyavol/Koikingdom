@@ -69,7 +69,8 @@ func _draw() -> void:
     ]), Color("#593f45"))
 
 func _spawn_npcs(saved_citizens: Array) -> void:
-    for i in range(STARTING_NPC_COUNT):
+    var spawn_count := mini(32, maxi(STARTING_NPC_COUNT, saved_citizens.size()))
+    for i in range(spawn_count):
         var npc = NPC_SCRIPT.new()
         add_child(npc)
         var data: Dictionary
