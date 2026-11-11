@@ -50,6 +50,7 @@ func _start_game() -> void:
     TimeManager.reset_clock()
     RelationshipManager.reset()
     KingdomManager.reset()
+    AdventureManager.reset()
     get_tree().change_scene_to_file(WORLD_SCENE)
 
 func _load_game() -> void:
