@@ -353,8 +353,8 @@ const WORLD_TILESET_PATH := "res://assets/tileset/IMG_20261111_185922.jpg"
 func _build_map_page() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	scroll.gui_input.connect(_on_map_scroll_input.bind(scroll))
 	page_host.add_child(scroll)
