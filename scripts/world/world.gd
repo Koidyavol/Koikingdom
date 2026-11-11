@@ -321,6 +321,17 @@ func _refresh_adventure_panel() -> void:
     inventory_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     adventure_content.add_child(inventory_label)
 
+    for item in AdventureManager.inventory:
+        var item_name := str(item.get("name", ""))
+        if str(item.get("type", "")) == "equipment":
+            _add_adventure_action(adventure_content, "Pakai: " + item_name, func(): _adventure_equip(item_name))
+
+    var crafting_title := Label.new()
+    crafting_title.text = "CRAFTING BLACKSMITH"
+    adventure_content.add_child(crafting_title)
+    _add_adventure_action(adventure_content, "Buat Pedang Besi (3 Bijih + 1 Kristal)", func(): _adventure_craft("Pedang Besi"))
+    _add_adventure_action(adventure_content, "Buat Jubah Kulit (2 Bijih)", func(): _adventure_craft("Jubah Kulit"))
+
     var result := Label.new()
     result.text = AdventureManager.last_result
     result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -357,6 +368,14 @@ func _adventure_attack() -> void:
 
 func _adventure_potion() -> void:
     AdventureManager.use_potion()
+    _refresh_adventure_panel()
+
+func _adventure_equip(item_name: String) -> void:
+    AdventureManager.equip_item(item_name)
+    _refresh_adventure_panel()
+
+func _adventure_craft(item_name: String) -> void:
+    AdventureManager.craft_item(item_name)
     _refresh_adventure_panel()
 
 func _adventure_leave() -> void:
