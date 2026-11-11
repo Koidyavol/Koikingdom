@@ -3,6 +3,7 @@ extends Node
 var treasury: int = 250
 var food: int = 180
 var tax_rate: float = 0.10
+var tax_policy := "Balanced"
 var happiness: float = 72.0
 var stability: float = 80.0
 var king_id := ""
@@ -49,6 +50,11 @@ func process_day(citizens: Array, current_day: int) -> void:
         else:
             military_morale = maxf(0.0, military_morale - 2.0)
             stability = maxf(0.0, stability - 0.2)
+        if tax_rate >= 0.20:
+            happiness = maxf(0.0, happiness - 0.35)
+            stability = maxf(0.0, stability - 0.1)
+        elif tax_rate <= 0.05:
+            happiness = minf(100.0, happiness + 0.2)
         if food < 0:
             happiness = maxf(0.0, happiness - 4.0)
             stability = maxf(0.0, stability - 2.0)
@@ -125,6 +131,15 @@ func _oldest_by_gender(citizens: Array, wanted_gender: String):
         if selected == null or citizen.age > selected.age:
             selected = citizen
     return selected
+
+func set_tax_rate(new_rate: float) -> void:
+    tax_rate = clampf(new_rate, 0.0, 0.30)
+    if tax_rate <= 0.05:
+        tax_policy = "Low Tax"
+    elif tax_rate >= 0.20:
+        tax_policy = "High Tax"
+    else:
+        tax_policy = "Balanced"
 
 func _ensure_foreign_kingdoms() -> void:
     if not foreign_kingdoms.is_empty():
@@ -223,7 +238,7 @@ func get_summary() -> String:
 
 func get_save_data() -> Dictionary:
     return {
-        "treasury": treasury, "food": food, "tax_rate": tax_rate,
+        "treasury": treasury, "food": food, "tax_rate": tax_rate, "tax_policy": tax_policy,
         "happiness": happiness, "stability": stability,
         "king_id": king_id, "queen_id": queen_id, "heir_id": heir_id,
         "council_ids": council_ids, "imperial_knight_ids": imperial_knight_ids,
@@ -235,7 +250,8 @@ func get_save_data() -> Dictionary:
 func apply_state(state: Dictionary) -> void:
     treasury = maxi(0, int(state.get("treasury", 250)))
     food = maxi(0, int(state.get("food", 180)))
-    tax_rate = clampf(float(state.get("tax_rate", 0.10)), 0.0, 0.30)
+    set_tax_rate(float(state.get("tax_rate", 0.10)))
+    tax_policy = str(state.get("tax_policy", tax_policy))
     happiness = clampf(float(state.get("happiness", 72.0)), 0.0, 100.0)
     stability = clampf(float(state.get("stability", 80.0)), 0.0, 100.0)
     king_id = str(state.get("king_id", ""))
@@ -261,6 +277,7 @@ func reset() -> void:
     treasury = 250
     food = 180
     tax_rate = 0.10
+    tax_policy = "Balanced"
     happiness = 72.0
     stability = 80.0
     king_id = ""
