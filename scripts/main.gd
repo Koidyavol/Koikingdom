@@ -148,64 +148,75 @@ func _build_home(parent: VBoxContainer) -> void:
 
 func _build_npc_page(parent: VBoxContainer) -> void:
 	var title := Label.new()
-	title.text = "Karakter NPC"
+	title.text = "Karakter"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_color", TEXT_MAIN)
-	title.add_theme_font_size_override("font_size", 27)
+	title.add_theme_font_size_override("font_size", 24)
 	parent.add_child(title)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	parent.add_child(scroll)
+
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 10)
+	scroll.add_child(list)
 
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
 	style.bg_color = PANEL
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(14)
 	style.set_border_width_all(1)
 	style.border_color = Color("#40516a")
 	card.add_theme_stylebox_override("panel", style)
-	parent.add_child(card)
+	list.add_child(card)
 
-	var details := VBoxContainer.new()
-	details.add_theme_constant_override("separation", 9)
-	card.add_child(details)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	card.add_child(row)
 
 	var npc_image := TextureRect.new()
-	npc_image.custom_minimum_size = Vector2(0, 230)
-	npc_image.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-	npc_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	npc_image.custom_minimum_size = Vector2(96, 116)
+	npc_image.size = Vector2(96, 116)
+	npc_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	npc_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	if ResourceLoader.exists(NPC_IMAGE_PATH):
 		npc_image.texture = load(NPC_IMAGE_PATH)
-	else:
-		npc_image.texture = null
-	details.add_child(npc_image)
+	row.add_child(npc_image)
+
+	var details := VBoxContainer.new()
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.add_theme_constant_override("separation", 5)
+	row.add_child(details)
 
 	var name_label := Label.new()
 	name_label.text = NPC_DATA["name"]
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_color_override("font_color", ACCENT)
-	name_label.add_theme_font_size_override("font_size", 23)
+	name_label.add_theme_font_size_override("font_size", 18)
 	details.add_child(name_label)
 
 	var jp_label := Label.new()
 	jp_label.text = NPC_DATA["japanese_name"]
-	jp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	jp_label.add_theme_color_override("font_color", TEXT_MAIN)
-	jp_label.add_theme_font_size_override("font_size", 18)
 	details.add_child(jp_label)
 
-	for key in ["gender", "origin", "type"]:
-		var info := Label.new()
-		info.text = "%s: %s" % [key.capitalize(), NPC_DATA[key]]
-		info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		info.add_theme_color_override("font_color", TEXT_MUTED)
-		details.add_child(info)
+	var info := Label.new()
+	info.text = "Perempuan · Jepang · NPC"
+	info.add_theme_color_override("font_color", TEXT_MUTED)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details.add_child(info)
 
 	var talk_button := Button.new()
 	talk_button.text = "Bicara"
-	talk_button.custom_minimum_size = Vector2(0, 48)
+	talk_button.custom_minimum_size = Vector2(0, 38)
 	talk_button.pressed.connect(_open_aiko_chat)
-	parent.add_child(talk_button)
+	details.add_child(talk_button)
 
-	_add_teacher_npc_card(parent)
+	_add_teacher_npc_card(list)
 
 
 func _add_teacher_npc_card(parent: VBoxContainer) -> void:
