@@ -884,6 +884,9 @@ func _open_city_location(location_name: String, description: String) -> void:
 	if location_name == "Akademi":
 		_open_academy()
 		return
+	if location_name == "Balai Kota":
+		_open_town_hall_board()
+		return
 
 	for child in page_host.get_children():
 		page_host.remove_child(child)
@@ -918,3 +921,77 @@ func _open_city_location(location_name: String, description: String) -> void:
 	back.custom_minimum_size = Vector2(0, 54)
 	back.pressed.connect(_open_city_center)
 	layout.add_child(back)
+
+
+func _open_town_hall_board() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	page_host.add_child(scroll)
+
+	var layout := VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_theme_constant_override("separation", 12)
+	scroll.add_child(layout)
+
+	var title := Label.new()
+	title.text = "BALAI KOTA"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 25)
+	layout.add_child(title)
+
+	var board_title := Label.new()
+	board_title.text = "PAPAN INFORMASI KOTA"
+	board_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	board_title.add_theme_color_override("font_color", TEXT_MAIN)
+	board_title.add_theme_font_size_override("font_size", 19)
+	layout.add_child(board_title)
+
+	var date_label := Label.new()
+	date_label.text = "Informasi diperbarui: " + Time.get_date_string_from_system()
+	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	date_label.add_theme_color_override("font_color", TEXT_MUTED)
+	layout.add_child(date_label)
+
+	_add_city_notice(layout, "PENGUMUMAN", "Selamat datang di pusat informasi kota. Periksa papan ini untuk mengetahui jadwal dan kabar fasilitas kota.")
+	_add_city_notice(layout, "JADWAL AKADEMI", "Kegiatan belajar berlangsung setiap Senin–Sabtu mulai pukul 08.00. Hari Minggu merupakan hari libur.")
+	_add_city_notice(layout, "INFORMASI FASILITAS", "Akademi sudah menyediakan pendaftaran murid dan pencatatan kegiatan belajar. Fasilitas Guild Petualang dan Pemukiman akan diumumkan saat sudah tersedia.")
+
+	var back := Button.new()
+	back.text = "Kembali ke Pusat Kota"
+	back.custom_minimum_size = Vector2(0, 52)
+	back.pressed.connect(_open_city_center)
+	layout.add_child(back)
+
+
+func _add_city_notice(parent: VBoxContainer, heading: String, message: String) -> void:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = PANEL
+	style.set_corner_radius_all(13)
+	style.set_border_width_all(1)
+	style.border_color = Color("#40516a")
+	panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(panel)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 7)
+	panel.add_child(content)
+
+	var title := Label.new()
+	title.text = heading
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 17)
+	content.add_child(title)
+
+	var body := Label.new()
+	body.text = message
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_color_override("font_color", TEXT_MAIN)
+	content.add_child(body)
