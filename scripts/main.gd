@@ -18,12 +18,18 @@ var map_dragging := false
 var map_drag_last := Vector2.ZERO
 var academy_data: Dictionary = {"students": {}, "last_school_check": ""}
 var academy_status_label: Label
+var guild_data: Dictionary = {"members": {}, "completed_missions": 0, "active_mission": {}}
+var guild_status_label: Label
+var guild_member_select: OptionButton
+var guild_mission_select: OptionButton
+var guild_timer: Timer
 
 # Base attributes for the player character and all registered NPCs.
 var character_stats: Dictionary = {
 	"player": {"name": "Karakter Utama", "ATK": 10, "DEF": 10, "MAG": 10, "DEX": 10, "INT": 10},
 	"aiko": {"name": "Aiko Nakamura", "ATK": 8, "DEF": 8, "MAG": 12, "DEX": 11, "INT": 13},
-	"haruka": {"name": "Haruka Sato", "ATK": 6, "DEF": 9, "MAG": 15, "DEX": 10, "INT": 18}
+	"haruka": {"name": "Haruka Sato", "ATK": 6, "DEF": 9, "MAG": 15, "DEX": 10, "INT": 18},
+	"receptionist": {"name": "Miyuki Tanaka", "ATK": 5, "DEF": 7, "MAG": 12, "DEX": 11, "INT": 16}
 }
 
 const NPC_DATA := {
@@ -37,6 +43,7 @@ const NPC_DATA := {
 func _ready() -> void:
 	_build_shell()
 	_load_academy_data()
+	_load_guild_data()
 	_check_academy_schedule()
 	var academy_timer := Timer.new()
 	academy_timer.wait_time = 30.0
@@ -244,6 +251,61 @@ func _build_npc_page(parent: VBoxContainer) -> void:
 	action_row.add_child(status_button)
 
 	_add_teacher_npc_card(list)
+	_add_receptionist_npc_card(list)
+
+
+func _add_receptionist_npc_card(parent: VBoxContainer) -> void:
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = PANEL
+	style.set_corner_radius_all(16)
+	style.set_border_width_all(1)
+	style.border_color = Color("#40516a")
+	card.add_theme_stylebox_override("panel", style)
+	parent.add_child(card)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	card.add_child(row)
+	var portrait := PanelContainer.new()
+	portrait.custom_minimum_size = Vector2(88, 88)
+	var portrait_style := StyleBoxFlat.new()
+	portrait_style.bg_color = Color("#34445a")
+	portrait_style.set_corner_radius_all(12)
+	portrait.add_theme_stylebox_override("panel", portrait_style)
+	row.add_child(portrait)
+	var initials := Label.new()
+	initials.text = "美"
+	initials.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	initials.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	initials.add_theme_color_override("font_color", ACCENT)
+	initials.add_theme_font_size_override("font_size", 36)
+	portrait.add_child(initials)
+	var details := VBoxContainer.new()
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.add_theme_constant_override("separation", 5)
+	row.add_child(details)
+	var name_label := Label.new()
+	name_label.text = "Miyuki Tanaka"
+	name_label.add_theme_color_override("font_color", ACCENT)
+	name_label.add_theme_font_size_override("font_size", 19)
+	details.add_child(name_label)
+	var role := Label.new()
+	role.text = "田中 美雪 · Resepsionis Guild"
+	role.add_theme_color_override("font_color", TEXT_MAIN)
+	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details.add_child(role)
+	var info := Label.new()
+	info.text = "Mengurus pendaftaran dan papan misi petualang."
+	info.add_theme_color_override("font_color", TEXT_MUTED)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	details.add_child(info)
+	var status_button := Button.new()
+	status_button.text = "🔍"
+	status_button.tooltip_text = "Lihat status Miyuki"
+	status_button.custom_minimum_size = Vector2(44, 42)
+	status_button.pressed.connect(_open_character_status.bind("receptionist", "Karakter"))
+	details.add_child(status_button)
 
 
 func _add_teacher_npc_card(parent: VBoxContainer) -> void:
@@ -1023,6 +1085,9 @@ func _open_city_location(location_name: String, description: String) -> void:
 	if location_name == "Balai Kota":
 		_open_town_hall_board()
 		return
+	if location_name == "Guild Petualang":
+		_open_adventurer_guild()
+		return
 
 	for child in page_host.get_children():
 		page_host.remove_child(child)
@@ -1057,6 +1122,204 @@ func _open_city_location(location_name: String, description: String) -> void:
 	back.custom_minimum_size = Vector2(0, 54)
 	back.pressed.connect(_open_city_center)
 	layout.add_child(back)
+
+
+
+func _load_guild_data() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://guild.cfg") == OK:
+		guild_data = {
+			"members": config.get_value("guild", "members", {}),
+			"completed_missions": config.get_value("guild", "completed_missions", 0),
+			"active_mission": config.get_value("guild", "active_mission", {})
+		}
+
+
+func _save_guild_data() -> void:
+	var config := ConfigFile.new()
+	config.set_value("guild", "members", guild_data.get("members", {}))
+	config.set_value("guild", "completed_missions", guild_data.get("completed_missions", 0))
+	config.set_value("guild", "active_mission", guild_data.get("active_mission", {}))
+	config.save("user://guild.cfg")
+
+
+func _adventurer_rank(points: int) -> String:
+	if points >= 100: return "S"
+	if points >= 60: return "A"
+	if points >= 35: return "B"
+	if points >= 20: return "C"
+	if points >= 10: return "D"
+	if points >= 5: return "E"
+	return "F"
+
+
+func _open_adventurer_guild() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	page_host.add_child(scroll)
+	var layout := VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_theme_constant_override("separation", 10)
+	scroll.add_child(layout)
+	var title := Label.new()
+	title.text = "GUILD PETUALANG"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 25)
+	layout.add_child(title)
+	_add_city_notice(layout, "RESEPSIONIS · MIYUKI TANAKA", "Miyuki mengurus pendaftaran anggota, menerima misi, dan memperbarui peringkat guild.")
+	_add_city_notice(layout, "SISTEM RANK", "F → E → D → C → B → A → S. Poin diperoleh dari misi yang berhasil diselesaikan.")
+	var registration_title := Label.new()
+	registration_title.text = "PENDAFTARAN PETUALANG"
+	registration_title.add_theme_color_override("font_color", ACCENT)
+	registration_title.add_theme_font_size_override("font_size", 18)
+	layout.add_child(registration_title)
+	var name_input := LineEdit.new()
+	name_input.placeholder_text = "Nama karakter yang akan didaftarkan"
+	name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(name_input)
+	var register_button := Button.new()
+	register_button.text = "Daftarkan sebagai Petualang"
+	register_button.custom_minimum_size = Vector2(0, 46)
+	register_button.pressed.connect(_register_guild_member.bind(name_input))
+	layout.add_child(register_button)
+	var mission_title := Label.new()
+	mission_title.text = "PAPAN MISI"
+	mission_title.add_theme_color_override("font_color", ACCENT)
+	mission_title.add_theme_font_size_override("font_size", 18)
+	layout.add_child(mission_title)
+	guild_member_select = OptionButton.new()
+	guild_member_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(guild_member_select)
+	guild_mission_select = OptionButton.new()
+	guild_mission_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	guild_mission_select.add_item("Memburu monster · 5 poin · 10 detik", 0)
+	guild_mission_select.add_item("Mengumpulkan bahan · 3 poin · 8 detik", 1)
+	guild_mission_select.add_item("Mengantar barang · 2 poin · 6 detik", 2)
+	layout.add_child(guild_mission_select)
+	var start_button := Button.new()
+	start_button.text = "Mulai Misi"
+	start_button.custom_minimum_size = Vector2(0, 48)
+	start_button.pressed.connect(_start_guild_mission)
+	layout.add_child(start_button)
+	guild_status_label = Label.new()
+	guild_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	guild_status_label.add_theme_color_override("font_color", TEXT_MAIN)
+	layout.add_child(guild_status_label)
+	var leaderboard_title := Label.new()
+	leaderboard_title.text = "PAPAN PERINGKAT"
+	leaderboard_title.add_theme_color_override("font_color", ACCENT)
+	leaderboard_title.add_theme_font_size_override("font_size", 18)
+	layout.add_child(leaderboard_title)
+	var leaderboard := VBoxContainer.new()
+	leaderboard.name = "GuildLeaderboard"
+	layout.add_child(leaderboard)
+	_refresh_guild_ui(leaderboard)
+	if not guild_data.get("active_mission", {}).is_empty():
+		guild_status_label.text = "Misi sedang berjalan: %s — %s" % [guild_data["active_mission"].get("member", ""), guild_data["active_mission"].get("name", "Misi")]
+	var back := Button.new()
+	back.text = "Kembali ke Pusat Kota"
+	back.custom_minimum_size = Vector2(0, 50)
+	back.pressed.connect(_open_city_center)
+	layout.add_child(back)
+
+
+func _register_guild_member(name_input: LineEdit) -> void:
+	var member_name := name_input.text.strip_edges()
+	if member_name.is_empty():
+		guild_status_label.text = "Masukkan nama karakter terlebih dahulu."
+		return
+	var members: Dictionary = guild_data.get("members", {})
+	if members.has(member_name):
+		guild_status_label.text = member_name + " sudah terdaftar di guild."
+		return
+	members[member_name] = {"points": 0, "completed": 0, "rank": "F"}
+	guild_data["members"] = members
+	_save_guild_data()
+	name_input.clear()
+	_refresh_guild_ui()
+	guild_status_label.text = member_name + " resmi terdaftar sebagai petualang Rank F."
+
+
+func _refresh_guild_ui(leaderboard: VBoxContainer = null) -> void:
+	if guild_member_select != null and is_instance_valid(guild_member_select):
+		guild_member_select.clear()
+		var members: Dictionary = guild_data.get("members", {})
+		for member_name in members.keys():
+			guild_member_select.add_item(str(member_name))
+	if leaderboard == null:
+		var found := page_host.find_child("GuildLeaderboard", true, false)
+		if found is VBoxContainer:
+			leaderboard = found
+	if leaderboard != null:
+		for child in leaderboard.get_children():
+			child.queue_free()
+		var members: Dictionary = guild_data.get("members", {})
+		var names: Array = members.keys()
+		names.sort_custom(func(a, b): return int(members[a].get("points", 0)) > int(members[b].get("points", 0)))
+		if names.is_empty():
+			var empty := Label.new()
+			empty.text = "Belum ada petualang terdaftar."
+			empty.add_theme_color_override("font_color", TEXT_MUTED)
+			leaderboard.add_child(empty)
+		for index in range(names.size()):
+			var member: Dictionary = members[names[index]]
+			var line := Label.new()
+			line.text = "%d. %s · Rank %s · %d misi selesai · %d poin" % [index + 1, names[index], member.get("rank", "F"), member.get("completed", 0), member.get("points", 0)]
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.add_theme_color_override("font_color", TEXT_MAIN)
+			leaderboard.add_child(line)
+
+
+func _start_guild_mission() -> void:
+	if guild_member_select == null or guild_member_select.item_count == 0:
+		guild_status_label.text = "Belum ada anggota. Daftarkan karakter terlebih dahulu."
+		return
+	if not guild_data.get("active_mission", {}).is_empty():
+		guild_status_label.text = "Masih ada misi yang sedang berjalan."
+		return
+	var member_name := guild_member_select.get_item_text(guild_member_select.selected)
+	var mission_id := guild_mission_select.selected
+	var mission_names := ["Memburu monster", "Mengumpulkan bahan", "Mengantar barang"]
+	var rewards := [5, 3, 2]
+	var durations := [10.0, 8.0, 6.0]
+	guild_data["active_mission"] = {"member": member_name, "name": mission_names[mission_id], "points": rewards[mission_id]}
+	_save_guild_data()
+	guild_status_label.text = "%s sedang menjalankan misi: %s..." % [member_name, mission_names[mission_id]]
+	guild_timer = Timer.new()
+	guild_timer.one_shot = true
+	guild_timer.wait_time = durations[mission_id]
+	guild_timer.timeout.connect(_complete_guild_mission)
+	add_child(guild_timer)
+	guild_timer.start()
+
+
+func _complete_guild_mission() -> void:
+	var active: Dictionary = guild_data.get("active_mission", {})
+	if active.is_empty():
+		return
+	var member_name := str(active.get("member", ""))
+	var members: Dictionary = guild_data.get("members", {})
+	if members.has(member_name):
+		var member: Dictionary = members[member_name]
+		member["points"] = int(member.get("points", 0)) + int(active.get("points", 0))
+		member["completed"] = int(member.get("completed", 0)) + 1
+		member["rank"] = _adventurer_rank(int(member["points"]))
+		members[member_name] = member
+		guild_data["members"] = members
+	guild_data["completed_missions"] = int(guild_data.get("completed_missions", 0)) + 1
+	guild_data["active_mission"] = {}
+	_save_guild_data()
+	if guild_status_label != null and is_instance_valid(guild_status_label):
+		guild_status_label.text = "Misi selesai! %s mendapat hadiah poin dan progres rank diperbarui." % member_name
+	_refresh_guild_ui()
+	if guild_timer != null:
+		guild_timer.queue_free()
+		guild_timer = null
 
 
 func _open_town_hall_board() -> void:
