@@ -1220,7 +1220,7 @@ func _open_adventurer_guild() -> void:
 	layout.add_child(leaderboard)
 	_refresh_guild_ui(leaderboard)
 	if not guild_data.get("active_mission", {}).is_empty():
-		guild_status_label.text = "Misi sedang berjalan: %s — %s" % [guild_data["active_mission"].get("member", ""), guild_data["active_mission"].get("name", "Misi")]
+		_resume_guild_mission()
 	var back := Button.new()
 	back.text = "Kembali ke Pusat Kota"
 	back.custom_minimum_size = Vector2(0, 50)
@@ -1287,12 +1287,30 @@ func _start_guild_mission() -> void:
 	var mission_names := ["Memburu monster", "Mengumpulkan bahan", "Mengantar barang"]
 	var rewards := [5, 3, 2]
 	var durations := [10.0, 8.0, 6.0]
-	guild_data["active_mission"] = {"member": member_name, "name": mission_names[mission_id], "points": rewards[mission_id]}
+	guild_data["active_mission"] = {"member": member_name, "name": mission_names[mission_id], "points": rewards[mission_id], "ends_at": Time.get_unix_time_from_system() + int(durations[mission_id])}
 	_save_guild_data()
 	guild_status_label.text = "%s sedang menjalankan misi: %s..." % [member_name, mission_names[mission_id]]
 	guild_timer = Timer.new()
 	guild_timer.one_shot = true
 	guild_timer.wait_time = durations[mission_id]
+	guild_timer.timeout.connect(_complete_guild_mission)
+	add_child(guild_timer)
+	guild_timer.start()
+
+
+func _resume_guild_mission() -> void:
+	var active: Dictionary = guild_data.get("active_mission", {})
+	if active.is_empty():
+		return
+	var remaining := maxf(0.0, float(active.get("ends_at", Time.get_unix_time_from_system())) - Time.get_unix_time_from_system())
+	if remaining <= 0.0:
+		_complete_guild_mission()
+		return
+	if guild_status_label != null and is_instance_valid(guild_status_label):
+		guild_status_label.text = "%s sedang menjalankan misi: %s..." % [active.get("member", ""), active.get("name", "Misi")]
+	guild_timer = Timer.new()
+	guild_timer.one_shot = true
+	guild_timer.wait_time = remaining
 	guild_timer.timeout.connect(_complete_guild_mission)
 	add_child(guild_timer)
 	guild_timer.start()
