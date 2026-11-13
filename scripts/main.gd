@@ -45,7 +45,7 @@ class DungeonBattleStage extends Control:
 			var hp := int(party_hp.get(member_label, 0))
 			var max_hp := int(party_max_hp.get(member_label, 1))
 			_draw_hp_bar(Vector2(x - 28, h * 0.78), 56.0, hp, max_hp, Color("#71d18b"))
-			draw_string(ThemeDB.fallback_font, Vector2(x - 35, h * 0.91), name.left(9), HORIZONTAL_ALIGNMENT_LEFT, 70, 10, Color("#f1f2ed"))
+			draw_string(ThemeDB.fallback_font, Vector2(x - 35, h * 0.91), member_label.left(9), HORIZONTAL_ALIGNMENT_LEFT, 70, 10, Color("#f1f2ed"))
 		var enemy_x := w * 0.79
 		var enemy_y := h * 0.55 + (sin(elapsed * 3.0) * 3.0)
 		_draw_monster(Vector2(enemy_x, enemy_y), attack_flash)
