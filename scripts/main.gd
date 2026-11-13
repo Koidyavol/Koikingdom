@@ -10,6 +10,70 @@ const NPC_EYES_OPEN_PATH := "res://assets/character/npc/aiko/portrait/eyes_open.
 const NPC_EYES_HALF_CLOSED_PATH := "res://assets/character/npc/aiko/portrait/eyes_half_closed.jpeg"
 const NPC_EYES_CLOSED_PATH := "res://assets/character/npc/aiko/portrait/eyes_closed.jpeg"
 
+
+class DungeonBattleStage extends Control:
+	var party_names: Array = []
+	var party_hp: Dictionary = {}
+	var party_max_hp: Dictionary = {}
+	var monster_name := "Monster"
+	var monster_hp := 1
+	var monster_max_hp := 1
+	var floor_number := 1
+	var attack_flash := false
+	var elapsed := 0.0
+
+	func _process(delta: float) -> void:
+		elapsed += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		draw_rect(Rect2(Vector2.ZERO, size), Color("#18283a"))
+		draw_rect(Rect2(Vector2(0, h * 0.72), Vector2(w, h * 0.28)), Color("#263b45"))
+		draw_line(Vector2(0, h * 0.72), Vector2(w, h * 0.72), Color("#71828a"), 2.0)
+		draw_string(ThemeDB.fallback_font, Vector2(12, 22), "LANTAI %d" % floor_number, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#e8c98d"))
+		var party_count := mini(party_names.size(), 4)
+		for i in range(party_count):
+			var name := str(party_names[i])
+			var x := w * (0.13 + float(i) * 0.13)
+			var bob := sin(elapsed * 5.0 + float(i)) * 2.0
+			var center := Vector2(x, h * 0.57 + bob)
+			var tint := [Color("#6eb8df"), Color("#d98fb0"), Color("#91c98c"), Color("#c5a4e8")][i]
+			_draw_hero(center, tint, attack_flash and i == int(elapsed * 2.0) % maxi(1, party_count))
+			var hp := int(party_hp.get(name, 0))
+			var max_hp := int(party_max_hp.get(name, 1))
+			_draw_hp_bar(Vector2(x - 28, h * 0.78), 56.0, hp, max_hp, Color("#71d18b"))
+			draw_string(ThemeDB.fallback_font, Vector2(x - 35, h * 0.91), name.left(9), HORIZONTAL_ALIGNMENT_LEFT, 70, 10, Color("#f1f2ed"))
+		var enemy_x := w * 0.79
+		var enemy_y := h * 0.55 + (sin(elapsed * 3.0) * 3.0)
+		_draw_monster(Vector2(enemy_x, enemy_y), attack_flash)
+		_draw_hp_bar(Vector2(w * 0.62, h * 0.78), w * 0.32, monster_hp, monster_max_hp, Color("#e36e70"))
+		draw_string(ThemeDB.fallback_font, Vector2(w * 0.62, h * 0.91), monster_name.left(20), HORIZONTAL_ALIGNMENT_LEFT, w * 0.34, 11, Color("#f1f2ed"))
+
+	func _draw_hero(c: Vector2, tint: Color, attacking: bool) -> void:
+		var shift := Vector2(13, -2) if attacking else Vector2.ZERO
+		draw_circle(c + Vector2(0, -27) + shift, 10, Color("#f0c7a8"))
+		draw_arc(c + Vector2(0, -29) + shift, 11, PI, TAU, 16, Color("#493a39"), 5.0)
+		draw_rect(Rect2(c + Vector2(-10, -16) + shift, Vector2(20, 25)), tint)
+		draw_line(c + Vector2(-6, 8) + shift, c + Vector2(-9, 22) + shift, Color("#d7dce5"), 5.0)
+		draw_line(c + Vector2(6, 8) + shift, c + Vector2(9, 22) + shift, Color("#d7dce5"), 5.0)
+		draw_line(c + Vector2(8, -10) + shift, c + Vector2(20, -20) + shift, Color("#d8dce5"), 3.0)
+
+	func _draw_monster(c: Vector2, hit: bool) -> void:
+		var body := Color("#c45f62") if hit else Color("#8c6cc0")
+		draw_circle(c, 25, body)
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-19, -15), c + Vector2(-29, -37), c + Vector2(-5, -24)]), body.lightened(0.18))
+		draw_colored_polygon(PackedVector2Array([c + Vector2(19, -15), c + Vector2(29, -37), c + Vector2(5, -24)]), body.lightened(0.18))
+		draw_circle(c + Vector2(-8, -3), 3, Color.WHITE)
+		draw_circle(c + Vector2(8, -3), 3, Color.WHITE)
+		draw_line(c + Vector2(-7, 9), c + Vector2(7, 9), Color("#392b38"), 2.0)
+
+	func _draw_hp_bar(pos: Vector2, width: float, hp: int, max_hp: int, fill: Color) -> void:
+		draw_rect(Rect2(pos, Vector2(width, 7)), Color("#10151d"))
+		var ratio := clampf(float(hp) / float(maxi(1, max_hp)), 0.0, 1.0)
+		draw_rect(Rect2(pos + Vector2(1, 1), Vector2((width - 2.0) * ratio, 5)), fill)
+
 var page_host: Control
 var current_page := "Home"
 var chat_log: VBoxContainer
@@ -24,8 +88,11 @@ var guild_member_select: OptionButton
 var guild_mission_select: OptionButton
 var guild_timer: Timer
 var dungeon_timer: Timer
+var dungeon_battle_timer: Timer
 var dungeon_status_label: Label
 var dungeon_log_label: Label
+var dungeon_rewards_label: Label
+var dungeon_battle_stage: DungeonBattleStage
 var dungeon_data: Dictionary = {"active": {}, "completed": 0, "failed": 0, "gold": 0, "materials": 0, "history": []}
 
 # Base attributes for the player character and all registered NPCs.
@@ -56,6 +123,11 @@ func _ready() -> void:
 	dungeon_timer.timeout.connect(_advance_dungeon_expedition)
 	dungeon_timer.autostart = true
 	add_child(dungeon_timer)
+	dungeon_battle_timer = Timer.new()
+	dungeon_battle_timer.wait_time = 1.2
+	dungeon_battle_timer.timeout.connect(_advance_dungeon_battle)
+	dungeon_battle_timer.autostart = true
+	add_child(dungeon_battle_timer)
 	_advance_dungeon_expedition()
 	var academy_timer := Timer.new()
 	academy_timer.wait_time = 30.0
@@ -1052,7 +1124,7 @@ func _open_dungeon() -> void:
 	page_host.add_child(scroll)
 	var layout := VBoxContainer.new()
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.add_theme_constant_override("separation", 12)
+	layout.add_theme_constant_override("separation", 10)
 	scroll.add_child(layout)
 	var title := Label.new()
 	title.text = "DUNGEON · GUA PEMULA"
@@ -1061,17 +1133,21 @@ func _open_dungeon() -> void:
 	title.add_theme_font_size_override("font_size", 23)
 	layout.add_child(title)
 	var note := Label.new()
-	note.text = "Petualang membentuk party dan menjelajah sendiri. Simulasi berjalan otomatis; Tuan cukup mengamati."
+	note.text = "Pertarungan otomatis berlangsung secara real-time. Tuan cukup menonton."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.add_theme_color_override("font_color", TEXT_MUTED)
 	layout.add_child(note)
+	dungeon_battle_stage = DungeonBattleStage.new()
+	dungeon_battle_stage.custom_minimum_size = Vector2(0, 270)
+	dungeon_battle_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(dungeon_battle_stage)
 	dungeon_status_label = Label.new()
 	dungeon_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dungeon_status_label.add_theme_color_override("font_color", TEXT_MAIN)
 	layout.add_child(dungeon_status_label)
 	var log_title := Label.new()
-	log_title.text = "LOG PETUALANGAN"
+	log_title.text = "LOG PERTARUNGAN"
 	log_title.add_theme_color_override("font_color", ACCENT)
 	log_title.add_theme_font_size_override("font_size", 17)
 	layout.add_child(log_title)
@@ -1084,11 +1160,10 @@ func _open_dungeon() -> void:
 	reward_title.add_theme_color_override("font_color", ACCENT)
 	reward_title.add_theme_font_size_override("font_size", 17)
 	layout.add_child(reward_title)
-	var rewards := Label.new()
-	rewards.text = "Petualangan selesai: %d\nGagal: %d\nEmas terkumpul: %d\nMaterial ditemukan: %d" % [int(dungeon_data.get("completed", 0)), int(dungeon_data.get("failed", 0)), int(dungeon_data.get("gold", 0)), int(dungeon_data.get("materials", 0))]
-	rewards.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	rewards.add_theme_color_override("font_color", TEXT_MAIN)
-	layout.add_child(rewards)
+	dungeon_rewards_label = Label.new()
+	dungeon_rewards_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dungeon_rewards_label.add_theme_color_override("font_color", TEXT_MAIN)
+	layout.add_child(dungeon_rewards_label)
 	var back := Button.new()
 	back.text = "Kembali ke Map"
 	back.custom_minimum_size = Vector2(0, 50)
@@ -1140,19 +1215,41 @@ func _dungeon_character_power(character_name: String) -> int:
 
 
 func _advance_dungeon_expedition() -> void:
+	# A new party is dispatched every 12 seconds when the previous expedition has ended.
+	if not dungeon_data.get("active", {}).is_empty():
+		return
+	var roster := _dungeon_available_characters()
+	if roster.is_empty():
+		return
+	roster.shuffle()
+	var party_size := mini(roster.size(), randi_range(1, mini(4, roster.size())))
+	var new_party: Array = roster.slice(0, party_size)
+	var member_hp: Dictionary = {}
+	var member_max_hp: Dictionary = {}
+	for member_name in new_party:
+		var stats := _dungeon_get_character_stats(str(member_name))
+		var max_hp := 70 + int(stats.get("DEF", 10)) * 3
+		member_max_hp[str(member_name)] = max_hp
+		member_hp[str(member_name)] = max_hp
+	var expedition_log: Array = ["Party terbentuk: " + ", ".join(PackedStringArray(new_party)), "Memasuki Gua Pemula."]
+	dungeon_data["active"] = {"party": new_party, "floor": 0, "log": expedition_log, "member_hp": member_hp, "member_max_hp": member_max_hp, "battle": {}}
+	_start_dungeon_battle()
+	_save_dungeon_data()
+	_refresh_dungeon_ui()
+
+
+func _dungeon_get_character_stats(character_name: String) -> Dictionary:
+	for stats in character_stats.values():
+		if str(stats.get("name", "")) == character_name:
+			return stats
+	return {"name": character_name, "ATK": 10, "DEF": 10, "MAG": 10, "DEX": 10, "INT": 10}
+
+
+func _start_dungeon_battle() -> void:
 	var active: Dictionary = dungeon_data.get("active", {})
 	if active.is_empty():
-		var roster := _dungeon_available_characters()
-		roster.shuffle()
-		var party_size := mini(roster.size(), randi_range(1, mini(4, roster.size())))
-		var new_party: Array = roster.slice(0, party_size)
-		var expedition_log: Array = ["Party terbentuk: " + ", ".join(PackedStringArray(new_party)), "Memasuki Gua Pemula."]
-		dungeon_data["active"] = {"party": new_party, "floor": 0, "log": expedition_log}
-		_save_dungeon_data()
-		_refresh_dungeon_ui()
 		return
 	var floor_number := int(active.get("floor", 0)) + 1
-	var party: Array = active.get("party", [])
 	var monster_pool := [
 		["Slime Lumut", "Kelelawar Gua", "Tikus Batu"],
 		["Goblin Pengintai", "Serigala Kelam", "Laba-laba Gua"],
@@ -1160,19 +1257,56 @@ func _advance_dungeon_expedition() -> void:
 		["Ksatria Tengkorak", "Mimic Rakus", "Wraith Kelabu"]
 	]
 	var bosses := ["Raja Goblin Grumak", "Taring Batu Gorgor", "Ratu Laba-laba Vespera", "Ksatria Kematian Dargan", "Naga Gua Vermith"]
-	var pool: Array = monster_pool[mini(floor_number - 1, 3)]
-	var monster_name := str(pool[randi_range(0, pool.size() - 1)])
-	var monster_power := 35 + floor_number * 18
+	var monster_name := str(monster_pool[mini(floor_number - 1, 3)][randi_range(0, 2)])
+	var monster_max_hp := 48 + floor_number * 24
+	var monster_attack := 7 + floor_number * 3
+	var monster_defense := 2 + floor_number * 2
 	if floor_number >= 5:
 		monster_name = bosses[randi_range(0, bosses.size() - 1)]
-		monster_power = 150
-	var party_power := 0
-	for member_name in party:
-		party_power += _dungeon_character_power(str(member_name))
-	var success_chance := clampf(0.48 + float(party_power - monster_power) / 240.0, 0.20, 0.92)
+		monster_max_hp = 210
+		monster_attack = 19
+		monster_defense = 12
+	active["battle"] = {"monster": monster_name, "monster_hp": monster_max_hp, "monster_max_hp": monster_max_hp, "monster_attack": monster_attack, "monster_defense": monster_defense, "round": 0}
 	var log: Array = active.get("log", [])
-	if randf() <= success_chance:
-		log.append("Lantai %d: party mengalahkan %s." % [floor_number, monster_name])
+	log.append("Lantai %d: %s muncul!" % [floor_number, monster_name])
+	active["log"] = log
+	dungeon_data["active"] = active
+	_refresh_dungeon_ui()
+
+
+func _advance_dungeon_battle() -> void:
+	var active: Dictionary = dungeon_data.get("active", {})
+	if active.is_empty():
+		return
+	var battle: Dictionary = active.get("battle", {})
+	if battle.is_empty():
+		_start_dungeon_battle()
+		return
+	var party: Array = active.get("party", [])
+	var member_hp: Dictionary = active.get("member_hp", {})
+	var member_max_hp: Dictionary = active.get("member_max_hp", {})
+	var living: Array = []
+	for member_name in party:
+		if int(member_hp.get(str(member_name), 0)) > 0:
+			living.append(str(member_name))
+	var log: Array = active.get("log", [])
+	if living.is_empty():
+		log.append("Seluruh party tumbang. Ekspedisi berakhir.")
+		dungeon_data["failed"] = int(dungeon_data.get("failed", 0)) + 1
+		active["log"] = log
+		dungeon_data["active"] = active
+		_finish_dungeon_expedition(false, log)
+		return
+	var round_number := int(battle.get("round", 0))
+	var attacker := living[round_number % living.size()]
+	var attacker_stats := _dungeon_get_character_stats(attacker)
+	var attack_power := int(attacker_stats.get("ATK", 10)) + int(attacker_stats.get("MAG", 10)) / 4
+	var damage := maxi(1, attack_power + randi_range(0, 5) - int(battle.get("monster_defense", 0)) / 3)
+	battle["monster_hp"] = maxi(0, int(battle.get("monster_hp", 1)) - damage)
+	log.append("%s menyerang %s (%d damage)." % [attacker, battle.get("monster", "Monster"), damage])
+	if int(battle["monster_hp"]) <= 0:
+		var floor_number := int(active.get("floor", 0)) + 1
+		log.append("%s dikalahkan! Party melewati lantai %d." % [battle.get("monster", "Monster"), floor_number])
 		active["floor"] = floor_number
 		if floor_number >= 5:
 			var gold_reward := randi_range(40, 90)
@@ -1180,17 +1314,29 @@ func _advance_dungeon_expedition() -> void:
 			dungeon_data["completed"] = int(dungeon_data.get("completed", 0)) + 1
 			dungeon_data["gold"] = int(dungeon_data.get("gold", 0)) + gold_reward
 			dungeon_data["materials"] = int(dungeon_data.get("materials", 0)) + material_reward
-			log.append("Boss %s dikalahkan! Hadiah: %d emas dan %d material." % [monster_name, gold_reward, material_reward])
+			log.append("Boss terakhir tumbang! Hadiah %d emas dan %d material." % [gold_reward, material_reward])
+			active["log"] = log
+			dungeon_data["active"] = active
 			_finish_dungeon_expedition(true, log)
 			return
-	else:
-		log.append("Lantai %d: party mundur setelah dikalahkan %s." % [floor_number, monster_name])
-		dungeon_data["failed"] = int(dungeon_data.get("failed", 0)) + 1
-		_finish_dungeon_expedition(false, log)
+		active["log"] = log
+		active["battle"] = {}
+		dungeon_data["active"] = active
+		_start_dungeon_battle()
+		_save_dungeon_data()
+		_refresh_dungeon_ui()
 		return
-	while log.size() > 12:
-		log.pop_front()
+	var target := living[randi_range(0, living.size() - 1)]
+	var target_stats := _dungeon_get_character_stats(target)
+	var monster_damage := maxi(1, int(battle.get("monster_attack", 8)) + randi_range(0, 3) - int(target_stats.get("DEF", 10)) / 3)
+	member_hp[target] = maxi(0, int(member_hp.get(target, 0)) - monster_damage)
+	log.append("%s membalas dan mengenai %s (%d damage)." % [battle.get("monster", "Monster"), target, monster_damage])
+	battle["round"] = round_number + 1
+	active["battle"] = battle
+	active["member_hp"] = member_hp
 	active["log"] = log
+	while log.size() > 14:
+		log.pop_front()
 	dungeon_data["active"] = active
 	_save_dungeon_data()
 	_refresh_dungeon_ui()
@@ -1212,11 +1358,30 @@ func _refresh_dungeon_ui() -> void:
 		return
 	var active: Dictionary = dungeon_data.get("active", {})
 	if active.is_empty():
-		dungeon_status_label.text = "Party berikutnya sedang dibentuk otomatis..."
-		dungeon_log_label.text = "Menunggu petualangan berikutnya."
+		dungeon_status_label.text = "Menunggu party berikutnya. Pemberangkatan otomatis setiap 12 detik."
+		dungeon_log_label.text = "Belum ada pertarungan aktif."
+		if dungeon_battle_stage != null and is_instance_valid(dungeon_battle_stage):
+			dungeon_battle_stage.party_names = []
+			dungeon_battle_stage.party_hp = {}
+			dungeon_battle_stage.party_max_hp = {}
+			dungeon_battle_stage.monster_name = "Menunggu party"
+			dungeon_battle_stage.monster_hp = 0
+			dungeon_battle_stage.monster_max_hp = 1
 	else:
-		dungeon_status_label.text = "Party: %s\nProgres: Lantai %d / 5" % [", ".join(PackedStringArray(active.get("party", []))), int(active.get("floor", 0))]
-		dungeon_log_label.text = "\n".join(active.get("log", []))
+		var battle: Dictionary = active.get("battle", {})
+		var party: Array = active.get("party", [])
+		dungeon_status_label.text = "Party: %s\nProgres: Lantai %d / 5\nMusuh: %s" % [", ".join(PackedStringArray(party)), int(active.get("floor", 0)) + 1, battle.get("monster", "Bersiap")]
+		dungeon_log_label.text = "\n".join(PackedStringArray(active.get("log", [])))
+		if dungeon_battle_stage != null and is_instance_valid(dungeon_battle_stage):
+			dungeon_battle_stage.party_names = party
+			dungeon_battle_stage.party_hp = active.get("member_hp", {})
+			dungeon_battle_stage.party_max_hp = active.get("member_max_hp", {})
+			dungeon_battle_stage.monster_name = str(battle.get("monster", "Monster"))
+			dungeon_battle_stage.monster_hp = int(battle.get("monster_hp", 0))
+			dungeon_battle_stage.monster_max_hp = int(battle.get("monster_max_hp", 1))
+			dungeon_battle_stage.floor_number = int(active.get("floor", 0)) + 1
+	if dungeon_rewards_label != null and is_instance_valid(dungeon_rewards_label):
+		dungeon_rewards_label.text = "Selesai: %d\nGagal: %d\nEmas: %d\nMaterial: %d" % [int(dungeon_data.get("completed", 0)), int(dungeon_data.get("failed", 0)), int(dungeon_data.get("gold", 0)), int(dungeon_data.get("materials", 0))]
 
 
 func _open_city_center() -> void:
