@@ -1143,9 +1143,9 @@ func _advance_dungeon_expedition() -> void:
 		var roster := _dungeon_available_characters()
 		roster.shuffle()
 		var party_size := mini(roster.size(), randi_range(1, mini(4, roster.size())))
-		var party: Array = roster.slice(0, party_size)
-		var log: Array = ["Party terbentuk: " + ", ".join(party), "Memasuki Gua Pemula."]
-		dungeon_data["active"] = {"party": party, "floor": 0, "log": log}
+		var new_party: Array = roster.slice(0, party_size)
+		var expedition_log: Array = ["Party terbentuk: " + ", ".join(PackedStringArray(new_party)), "Memasuki Gua Pemula."]
+		dungeon_data["active"] = {"party": new_party, "floor": 0, "log": expedition_log}
 		_save_dungeon_data()
 		_refresh_dungeon_ui()
 		return
@@ -1213,7 +1213,7 @@ func _refresh_dungeon_ui() -> void:
 		dungeon_status_label.text = "Party berikutnya sedang dibentuk otomatis..."
 		dungeon_log_label.text = "Menunggu petualangan berikutnya."
 	else:
-		dungeon_status_label.text = "Party: %s\nProgres: Lantai %d / 5" % [", ".join(active.get("party", [])), int(active.get("floor", 0))]
+		dungeon_status_label.text = "Party: %s\nProgres: Lantai %d / 5" % [", ".join(PackedStringArray(active.get("party", []))), int(active.get("floor", 0))]
 		dungeon_log_label.text = "\n".join(active.get("log", []))
 
 
