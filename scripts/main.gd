@@ -19,6 +19,13 @@ var map_drag_last := Vector2.ZERO
 var academy_data: Dictionary = {"students": {}, "last_school_check": ""}
 var academy_status_label: Label
 
+# Base attributes for the player character and all registered NPCs.
+var character_stats: Dictionary = {
+	"player": {"name": "Karakter Utama", "ATK": 10, "DEF": 10, "MAG": 10, "DEX": 10, "INT": 10},
+	"aiko": {"name": "Aiko Nakamura", "ATK": 8, "DEF": 8, "MAG": 12, "DEX": 11, "INT": 13},
+	"haruka": {"name": "Haruka Sato", "ATK": 6, "DEF": 9, "MAG": 15, "DEX": 10, "INT": 18}
+}
+
 const NPC_DATA := {
 	"name": "Aiko Nakamura",
 	"japanese_name": "中村 愛子",
@@ -146,6 +153,16 @@ func _build_home(parent: VBoxContainer) -> void:
 	hint.add_theme_font_size_override("font_size", 19)
 	placeholder.add_child(hint)
 
+	var status_row := HBoxContainer.new()
+	status_row.alignment = BoxContainer.ALIGNMENT_END
+	parent.add_child(status_row)
+	var status_button := Button.new()
+	status_button.text = "🔍"
+	status_button.tooltip_text = "Lihat status karakter utama"
+	status_button.custom_minimum_size = Vector2(48, 44)
+	status_button.pressed.connect(_open_character_status.bind("player", "Home"))
+	status_row.add_child(status_button)
+
 func _build_npc_page(parent: VBoxContainer) -> void:
 	var title := Label.new()
 	title.text = "Karakter"
@@ -210,11 +227,21 @@ func _build_npc_page(parent: VBoxContainer) -> void:
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	details.add_child(info)
 
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 6)
+	details.add_child(action_row)
 	var talk_button := Button.new()
 	talk_button.text = "Bicara"
+	talk_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	talk_button.custom_minimum_size = Vector2(0, 38)
 	talk_button.pressed.connect(_open_aiko_chat)
-	details.add_child(talk_button)
+	action_row.add_child(talk_button)
+	var status_button := Button.new()
+	status_button.text = "🔍"
+	status_button.tooltip_text = "Lihat status Aiko"
+	status_button.custom_minimum_size = Vector2(44, 38)
+	status_button.pressed.connect(_open_character_status.bind("aiko", "Karakter"))
+	action_row.add_child(status_button)
 
 	_add_teacher_npc_card(list)
 
@@ -273,11 +300,120 @@ func _add_teacher_npc_card(parent: VBoxContainer) -> void:
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	details.add_child(info)
 
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 6)
+	details.add_child(action_row)
 	var talk := Button.new()
 	talk.text = "Profil Guru"
+	talk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	talk.custom_minimum_size = Vector2(0, 42)
 	talk.pressed.connect(_open_teacher_profile)
-	details.add_child(talk)
+	action_row.add_child(talk)
+	var status_button := Button.new()
+	status_button.text = "🔍"
+	status_button.tooltip_text = "Lihat status Haruka"
+	status_button.custom_minimum_size = Vector2(44, 42)
+	status_button.pressed.connect(_open_character_status.bind("haruka", "Karakter"))
+	action_row.add_child(status_button)
+
+
+func _open_character_status(character_id: String, return_page: String) -> void:
+	var stats: Dictionary = character_stats.get(character_id, {})
+	if stats.is_empty():
+		push_warning("Status karakter tidak ditemukan: " + character_id)
+		return
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	page_host.add_child(scroll)
+	var layout := VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_theme_constant_override("separation", 10)
+	scroll.add_child(layout)
+
+	var title := Label.new()
+	title.text = "STATUS KARAKTER"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", ACCENT)
+	title.add_theme_font_size_override("font_size", 23)
+	layout.add_child(title)
+	var name_label := Label.new()
+	name_label.text = str(stats.get("name", "Karakter"))
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_color_override("font_color", TEXT_MAIN)
+	name_label.add_theme_font_size_override("font_size", 19)
+	layout.add_child(name_label)
+
+	for stat_name in ["ATK", "DEF", "MAG", "DEX", "INT"]:
+		var stat_row := HBoxContainer.new()
+		stat_row.add_theme_constant_override("separation", 8)
+		layout.add_child(stat_row)
+		var stat_label := Label.new()
+		stat_label.text = stat_name
+		stat_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stat_label.add_theme_color_override("font_color", ACCENT)
+		stat_row.add_child(stat_label)
+		var value_label := Label.new()
+		value_label.text = str(int(stats.get(stat_name, 0)))
+		value_label.add_theme_color_override("font_color", TEXT_MAIN)
+		stat_row.add_child(value_label)
+
+	var effects: Dictionary = _calculate_character_effects(stats)
+	var effect_title := Label.new()
+	effect_title.text = "PENGARUH STATUS"
+	effect_title.add_theme_color_override("font_color", ACCENT)
+	effect_title.add_theme_font_size_override("font_size", 17)
+	layout.add_child(effect_title)
+	for effect_text in [
+		"Serangan fisik: %s" % effects["physical_attack"],
+		"Pengurangan damage fisik: %s%%" % effects["physical_reduction"],
+		"Kekuatan sihir: %s" % effects["magic_power"],
+		"Akurasi: %s%%" % effects["accuracy"],
+		"Peluang menghindar: %s%%" % effects["evasion"],
+		"Peluang kritis: %s%%" % effects["critical"],
+		"Maksimum MP: %s" % effects["max_mp"],
+		"Bonus efek sihir: %s%%" % effects["magic_bonus"],
+		"Resistensi efek status: %s%%" % effects["status_resistance"]
+	]:
+		var effect_label := Label.new()
+		effect_label.text = effect_text
+		effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		effect_label.add_theme_color_override("font_color", TEXT_MAIN)
+		layout.add_child(effect_label)
+
+	var back := Button.new()
+	back.text = "Kembali"
+	back.custom_minimum_size = Vector2(0, 48)
+	back.pressed.connect(_show_page.bind(return_page))
+	layout.add_child(back)
+
+
+func _make_character_stats(character_name: String, atk: int = 10, defense: int = 10, mag: int = 10, dex: int = 10, intelligence: int = 10) -> Dictionary:
+	return {"name": character_name, "ATK": maxi(0, atk), "DEF": maxi(0, defense), "MAG": maxi(0, mag), "DEX": maxi(0, dex), "INT": maxi(0, intelligence)}
+
+
+# Shared calculations for future combat and skill systems.
+func _calculate_character_effects(stats: Dictionary) -> Dictionary:
+	var atk := maxi(0, int(stats.get("ATK", 0)))
+	var defense := maxi(0, int(stats.get("DEF", 0)))
+	var mag := maxi(0, int(stats.get("MAG", 0)))
+	var dex := maxi(0, int(stats.get("DEX", 0)))
+	var intelligence := maxi(0, int(stats.get("INT", 0)))
+	return {
+		"physical_attack": atk,
+		"physical_reduction": mini(75, int(floor(defense * 0.5))),
+		"magic_power": mag + int(floor(intelligence * 0.25)),
+		"accuracy": mini(100, 80 + int(floor(dex * 0.5))),
+		"evasion": mini(50, int(floor(dex * 0.4))),
+		"critical": mini(50, int(floor(dex * 0.25))),
+		"max_mp": 20 + intelligence * 3,
+		"magic_bonus": mini(75, int(floor(intelligence * 0.25))),
+		"status_resistance": mini(60, int(floor(intelligence * 0.2)))
+	}
 
 
 func _open_teacher_profile() -> void:
