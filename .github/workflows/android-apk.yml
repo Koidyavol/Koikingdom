@@ -84,6 +84,17 @@ jobs:
           godot --version
           timeout 240s godot --headless --editor --path . --quit
 
+      - name: Run headless startup smoke test
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          timeout 30s godot --headless --path . --quit-after 5 2>&1 | tee /tmp/godot-smoke.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed loading resource|Invalid call" /tmp/godot-smoke.log; then
+            echo "Godot startup smoke test reported a script/runtime error."
+            exit 1
+          fi
+
       - name: Export APK using the standard Godot template
         shell: bash
         timeout-minutes: 15
