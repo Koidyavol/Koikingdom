@@ -1124,8 +1124,10 @@ func _save_dungeon_data() -> void:
 func _dungeon_available_characters() -> Array:
 	var roster: Array = ["Karakter Utama", "Aiko Nakamura"]
 	var members: Dictionary = guild_data.get("members", {})
+	var active_guild_mission: Dictionary = guild_data.get("active_mission", {})
+	var busy_member := str(active_guild_mission.get("member", ""))
 	for member_name in members.keys():
-		if not roster.has(str(member_name)):
+		if str(member_name) != busy_member and not roster.has(str(member_name)):
 			roster.append(str(member_name))
 	return roster
 
