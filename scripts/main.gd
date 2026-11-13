@@ -36,14 +36,14 @@ class DungeonBattleStage extends Control:
 		draw_string(ThemeDB.fallback_font, Vector2(12, 22), "LANTAI %d" % floor_number, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#e8c98d"))
 		var party_count := mini(party_names.size(), 4)
 		for i in range(party_count):
-			var name := str(party_names[i])
+			var member_label := str(party_names[i])
 			var x := w * (0.13 + float(i) * 0.13)
 			var bob := sin(elapsed * 5.0 + float(i)) * 2.0
 			var center := Vector2(x, h * 0.57 + bob)
-			var tint := [Color("#6eb8df"), Color("#d98fb0"), Color("#91c98c"), Color("#c5a4e8")][i]
+			var tint: Color = [Color("#6eb8df"), Color("#d98fb0"), Color("#91c98c"), Color("#c5a4e8")][i]
 			_draw_hero(center, tint, attack_flash and i == int(elapsed * 2.0) % maxi(1, party_count))
-			var hp := int(party_hp.get(name, 0))
-			var max_hp := int(party_max_hp.get(name, 1))
+			var hp := int(party_hp.get(member_label, 0))
+			var max_hp := int(party_max_hp.get(member_label, 1))
 			_draw_hp_bar(Vector2(x - 28, h * 0.78), 56.0, hp, max_hp, Color("#71d18b"))
 			draw_string(ThemeDB.fallback_font, Vector2(x - 35, h * 0.91), name.left(9), HORIZONTAL_ALIGNMENT_LEFT, 70, 10, Color("#f1f2ed"))
 		var enemy_x := w * 0.79
