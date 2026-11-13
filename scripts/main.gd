@@ -973,6 +973,17 @@ func _build_map_page() -> void:
 	city_hotspot.pressed.connect(_open_city_center)
 	map_root.add_child(city_hotspot)
 
+	# Dungeon entrance hotspot, fixed to the world map so it follows touch-drag scrolling.
+	var dungeon_hotspot := Button.new()
+	dungeon_hotspot.text = "DUNGEON"
+	dungeon_hotspot.position = Vector2(1050, 850)
+	dungeon_hotspot.size = Vector2(190, 82)
+	dungeon_hotspot.custom_minimum_size = Vector2(190, 82)
+	dungeon_hotspot.add_theme_font_size_override("font_size", 19)
+	dungeon_hotspot.add_theme_color_override("font_color", Color("#ffd6d6"))
+	dungeon_hotspot.pressed.connect(_open_dungeon)
+	map_root.add_child(dungeon_hotspot)
+
 
 	var hint := Label.new()
 	hint.text = "Geser peta untuk menjelajah"
@@ -1017,6 +1028,52 @@ func _on_map_scroll_input(event: InputEvent, scroll: ScrollContainer) -> void:
 		scroll.scroll_vertical = maxi(0, scroll.scroll_vertical - int(drag_delta.y))
 		map_drag_last = event.position
 		scroll.accept_event()
+
+
+func _open_dungeon() -> void:
+	for child in page_host.get_children():
+		page_host.remove_child(child)
+		child.queue_free()
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var style := StyleBoxFlat.new()
+	style.bg_color = BG
+	style.set_corner_radius_all(14)
+	panel.add_theme_stylebox_override("panel", style)
+	page_host.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	panel.add_child(margin)
+
+	var layout := VBoxContainer.new()
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 14)
+	margin.add_child(layout)
+
+	var title := Label.new()
+	title.text = "DUNGEON"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color("#ff8585"))
+	title.add_theme_font_size_override("font_size", 28)
+	layout.add_child(title)
+
+	var description := Label.new()
+	description.text = "Area penjelajahan bawah tanah. Pintu masuk dungeon sudah ditandai pada peta. Sistem eksplorasi dan pertarungan dungeon belum diaktifkan."
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.add_theme_color_override("font_color", TEXT_MAIN)
+	layout.add_child(description)
+
+	var back := Button.new()
+	back.text = "Kembali ke Map"
+	back.custom_minimum_size = Vector2(0, 52)
+	back.pressed.connect(_show_page.bind("Map"))
+	layout.add_child(back)
 
 
 func _open_city_center() -> void:
