@@ -24,6 +24,7 @@ class DungeonBattleStage extends Control:
 
 	func _process(delta: float) -> void:
 		elapsed += delta
+		attack_flash = fmod(elapsed, 1.2) < 0.22
 		queue_redraw()
 
 	func _draw() -> void:
@@ -1285,6 +1286,14 @@ func _advance_dungeon_battle() -> void:
 	var party: Array = active.get("party", [])
 	var member_hp: Dictionary = active.get("member_hp", {})
 	var member_max_hp: Dictionary = active.get("member_max_hp", {})
+	if member_hp.is_empty():
+		for member_name in party:
+			var saved_stats := _dungeon_get_character_stats(str(member_name))
+			var saved_max_hp := 70 + int(saved_stats.get("DEF", 10)) * 3
+			member_max_hp[str(member_name)] = saved_max_hp
+			member_hp[str(member_name)] = saved_max_hp
+		active["member_hp"] = member_hp
+		active["member_max_hp"] = member_max_hp
 	var living: Array = []
 	for member_name in party:
 		if int(member_hp.get(str(member_name), 0)) > 0:
