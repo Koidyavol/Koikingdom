@@ -1134,7 +1134,7 @@ func _open_dungeon() -> void:
 	title.add_theme_font_size_override("font_size", 23)
 	layout.add_child(title)
 	var note := Label.new()
-	note.text = "Pertarungan otomatis berlangsung secara real-time. Tuan cukup menonton."
+	note.text = "Pertarungan turn-based otomatis: seluruh anggota party mendapat giliran, lalu monster membalas. Tuan cukup menonton."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.add_theme_color_override("font_color", TEXT_MUTED)
@@ -1306,13 +1306,16 @@ func _advance_dungeon_battle() -> void:
 		dungeon_data["active"] = active
 		_finish_dungeon_expedition(false, log)
 		return
-	var round_number := int(battle.get("round", 0))
-	var attacker := living[round_number % living.size()]
+
+	# Turn-based: every living party member acts once before the monster gets its turn.
+	var turn_index := clampi(int(battle.get("turn_index", 0)), 0, living.size() - 1)
+	var attacker := str(living[turn_index])
 	var attacker_stats := _dungeon_get_character_stats(attacker)
 	var attack_power := int(attacker_stats.get("ATK", 10)) + int(attacker_stats.get("MAG", 10)) / 4
 	var damage := maxi(1, attack_power + randi_range(0, 5) - int(battle.get("monster_defense", 0)) / 3)
 	battle["monster_hp"] = maxi(0, int(battle.get("monster_hp", 1)) - damage)
-	log.append("%s menyerang %s (%d damage)." % [attacker, battle.get("monster", "Monster"), damage])
+	log.append("Giliran %s: menyerang %s (%d damage)." % [attacker, battle.get("monster", "Monster"), damage])
+
 	if int(battle["monster_hp"]) <= 0:
 		var floor_number := int(active.get("floor", 0)) + 1
 		log.append("%s dikalahkan! Party melewati lantai %d." % [battle.get("monster", "Monster"), floor_number])
@@ -1335,12 +1338,18 @@ func _advance_dungeon_battle() -> void:
 		_save_dungeon_data()
 		_refresh_dungeon_ui()
 		return
-	var target := living[randi_range(0, living.size() - 1)]
-	var target_stats := _dungeon_get_character_stats(target)
-	var monster_damage := maxi(1, int(battle.get("monster_attack", 8)) + randi_range(0, 3) - int(target_stats.get("DEF", 10)) / 3)
-	member_hp[target] = maxi(0, int(member_hp.get(target, 0)) - monster_damage)
-	log.append("%s membalas dan mengenai %s (%d damage)." % [battle.get("monster", "Monster"), target, monster_damage])
-	battle["round"] = round_number + 1
+
+	turn_index += 1
+	if turn_index >= living.size():
+		var target := str(living[randi_range(0, living.size() - 1)])
+		var target_stats := _dungeon_get_character_stats(target)
+		var monster_damage := maxi(1, int(battle.get("monster_attack", 8)) + randi_range(0, 3) - int(target_stats.get("DEF", 10)) / 3)
+		member_hp[target] = maxi(0, int(member_hp.get(target, 0)) - monster_damage)
+		log.append("Giliran monster: %s menyerang %s (%d damage)." % [battle.get("monster", "Monster"), target, monster_damage])
+		turn_index = 0
+
+	battle["turn_index"] = turn_index
+	battle["round"] = int(battle.get("round", 0)) + 1
 	active["battle"] = battle
 	active["member_hp"] = member_hp
 	active["log"] = log
@@ -1349,7 +1358,6 @@ func _advance_dungeon_battle() -> void:
 	dungeon_data["active"] = active
 	_save_dungeon_data()
 	_refresh_dungeon_ui()
-
 
 func _finish_dungeon_expedition(victory: bool, expedition_log: Array) -> void:
 	var history: Array = dungeon_data.get("history", [])
