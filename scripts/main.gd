@@ -1251,6 +1251,8 @@ func _refresh_guild_ui(leaderboard: VBoxContainer = null) -> void:
 		var members: Dictionary = guild_data.get("members", {})
 		for member_name in members.keys():
 			guild_member_select.add_item(str(member_name))
+		if guild_member_select.item_count > 0 and guild_member_select.selected < 0:
+			guild_member_select.select(0)
 	if leaderboard == null:
 		var found := page_host.find_child("GuildLeaderboard", true, false)
 		if found is VBoxContainer:
