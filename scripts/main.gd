@@ -23,6 +23,10 @@ var guild_status_label: Label
 var guild_member_select: OptionButton
 var guild_mission_select: OptionButton
 var guild_timer: Timer
+var dungeon_timer: Timer
+var dungeon_status_label: Label
+var dungeon_log_label: Label
+var dungeon_data: Dictionary = {"active": {}, "completed": 0, "failed": 0, "gold": 0, "materials": 0, "history": []}
 
 # Base attributes for the player character and all registered NPCs.
 var character_stats: Dictionary = {
@@ -44,7 +48,15 @@ func _ready() -> void:
 	_build_shell()
 	_load_academy_data()
 	_load_guild_data()
+	_load_dungeon_data()
+	randomize()
 	_check_academy_schedule()
+	dungeon_timer = Timer.new()
+	dungeon_timer.wait_time = 12.0
+	dungeon_timer.timeout.connect(_advance_dungeon_expedition)
+	dungeon_timer.autostart = true
+	add_child(dungeon_timer)
+	_advance_dungeon_expedition()
 	var academy_timer := Timer.new()
 	academy_timer.wait_time = 30.0
 	academy_timer.timeout.connect(_check_academy_schedule)
@@ -1034,46 +1046,175 @@ func _open_dungeon() -> void:
 	for child in page_host.get_children():
 		page_host.remove_child(child)
 		child.queue_free()
-
-	var panel := PanelContainer.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var style := StyleBoxFlat.new()
-	style.bg_color = BG
-	style.set_corner_radius_all(14)
-	panel.add_theme_stylebox_override("panel", style)
-	page_host.add_child(panel)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 20)
-	panel.add_child(margin)
-
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	page_host.add_child(scroll)
 	var layout := VBoxContainer.new()
-	layout.alignment = BoxContainer.ALIGNMENT_CENTER
-	layout.add_theme_constant_override("separation", 14)
-	margin.add_child(layout)
-
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_theme_constant_override("separation", 12)
+	scroll.add_child(layout)
 	var title := Label.new()
-	title.text = "DUNGEON"
+	title.text = "DUNGEON · GUA PEMULA"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_color", Color("#ff8585"))
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", 23)
 	layout.add_child(title)
-
-	var description := Label.new()
-	description.text = "Area penjelajahan bawah tanah. Pintu masuk dungeon sudah ditandai pada peta. Sistem eksplorasi dan pertarungan dungeon belum diaktifkan."
-	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.add_theme_color_override("font_color", TEXT_MAIN)
-	layout.add_child(description)
-
+	var note := Label.new()
+	note.text = "Petualang membentuk party dan menjelajah sendiri. Simulasi berjalan otomatis; Tuan cukup mengamati."
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.add_theme_color_override("font_color", TEXT_MUTED)
+	layout.add_child(note)
+	dungeon_status_label = Label.new()
+	dungeon_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dungeon_status_label.add_theme_color_override("font_color", TEXT_MAIN)
+	layout.add_child(dungeon_status_label)
+	var log_title := Label.new()
+	log_title.text = "LOG PETUALANGAN"
+	log_title.add_theme_color_override("font_color", ACCENT)
+	log_title.add_theme_font_size_override("font_size", 17)
+	layout.add_child(log_title)
+	dungeon_log_label = Label.new()
+	dungeon_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dungeon_log_label.add_theme_color_override("font_color", TEXT_MAIN)
+	layout.add_child(dungeon_log_label)
+	var reward_title := Label.new()
+	reward_title.text = "CATATAN DUNGEON"
+	reward_title.add_theme_color_override("font_color", ACCENT)
+	reward_title.add_theme_font_size_override("font_size", 17)
+	layout.add_child(reward_title)
+	var rewards := Label.new()
+	rewards.text = "Petualangan selesai: %d\nGagal: %d\nEmas terkumpul: %d\nMaterial ditemukan: %d" % [int(dungeon_data.get("completed", 0)), int(dungeon_data.get("failed", 0)), int(dungeon_data.get("gold", 0)), int(dungeon_data.get("materials", 0))]
+	rewards.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rewards.add_theme_color_override("font_color", TEXT_MAIN)
+	layout.add_child(rewards)
 	var back := Button.new()
 	back.text = "Kembali ke Map"
-	back.custom_minimum_size = Vector2(0, 52)
+	back.custom_minimum_size = Vector2(0, 50)
 	back.pressed.connect(_show_page.bind("Map"))
 	layout.add_child(back)
+	_refresh_dungeon_ui()
+
+
+func _load_dungeon_data() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://dungeon.cfg") == OK:
+		dungeon_data = {
+			"active": config.get_value("dungeon", "active", {}),
+			"completed": config.get_value("dungeon", "completed", 0),
+			"failed": config.get_value("dungeon", "failed", 0),
+			"gold": config.get_value("dungeon", "gold", 0),
+			"materials": config.get_value("dungeon", "materials", 0),
+			"history": config.get_value("dungeon", "history", [])
+		}
+
+
+func _save_dungeon_data() -> void:
+	var config := ConfigFile.new()
+	config.set_value("dungeon", "active", dungeon_data.get("active", {}))
+	config.set_value("dungeon", "completed", dungeon_data.get("completed", 0))
+	config.set_value("dungeon", "failed", dungeon_data.get("failed", 0))
+	config.set_value("dungeon", "gold", dungeon_data.get("gold", 0))
+	config.set_value("dungeon", "materials", dungeon_data.get("materials", 0))
+	config.set_value("dungeon", "history", dungeon_data.get("history", []))
+	config.save("user://dungeon.cfg")
+
+
+func _dungeon_available_characters() -> Array:
+	var roster: Array = ["Karakter Utama", "Aiko Nakamura"]
+	var members: Dictionary = guild_data.get("members", {})
+	for member_name in members.keys():
+		if not roster.has(str(member_name)):
+			roster.append(str(member_name))
+	return roster
+
+
+func _dungeon_character_power(character_name: String) -> int:
+	for stats in character_stats.values():
+		if str(stats.get("name", "")) == character_name:
+			return int(stats.get("ATK", 0)) + int(stats.get("DEF", 0)) + int(stats.get("MAG", 0)) + int(stats.get("DEX", 0)) + int(stats.get("INT", 0))
+	return 50
+
+
+func _advance_dungeon_expedition() -> void:
+	var active: Dictionary = dungeon_data.get("active", {})
+	if active.is_empty():
+		var roster := _dungeon_available_characters()
+		roster.shuffle()
+		var party_size := mini(roster.size(), randi_range(1, mini(4, roster.size())))
+		var party: Array = roster.slice(0, party_size)
+		var log: Array = ["Party terbentuk: " + ", ".join(party), "Memasuki Gua Pemula."]
+		dungeon_data["active"] = {"party": party, "floor": 0, "log": log}
+		_save_dungeon_data()
+		_refresh_dungeon_ui()
+		return
+	var floor_number := int(active.get("floor", 0)) + 1
+	var party: Array = active.get("party", [])
+	var monster_pool := [
+		["Slime Lumut", "Kelelawar Gua", "Tikus Batu"],
+		["Goblin Pengintai", "Serigala Kelam", "Laba-laba Gua"],
+		["Orc Penjaga", "Kalajengking Besi", "Ghoul Pengembara"],
+		["Ksatria Tengkorak", "Mimic Rakus", "Wraith Kelabu"]
+	]
+	var bosses := ["Raja Goblin Grumak", "Taring Batu Gorgor", "Ratu Laba-laba Vespera", "Ksatria Kematian Dargan", "Naga Gua Vermith"]
+	var pool: Array = monster_pool[mini(floor_number - 1, 3)]
+	var monster_name := str(pool[randi_range(0, pool.size() - 1)])
+	var monster_power := 35 + floor_number * 18
+	if floor_number >= 5:
+		monster_name = bosses[randi_range(0, bosses.size() - 1)]
+		monster_power = 150
+	var party_power := 0
+	for member_name in party:
+		party_power += _dungeon_character_power(str(member_name))
+	var success_chance := clampf(0.48 + float(party_power - monster_power) / 240.0, 0.20, 0.92)
+	var log: Array = active.get("log", [])
+	if randf() <= success_chance:
+		log.append("Lantai %d: party mengalahkan %s." % [floor_number, monster_name])
+		active["floor"] = floor_number
+		if floor_number >= 5:
+			var gold_reward := randi_range(40, 90)
+			var material_reward := randi_range(1, 3)
+			dungeon_data["completed"] = int(dungeon_data.get("completed", 0)) + 1
+			dungeon_data["gold"] = int(dungeon_data.get("gold", 0)) + gold_reward
+			dungeon_data["materials"] = int(dungeon_data.get("materials", 0)) + material_reward
+			log.append("Boss %s dikalahkan! Hadiah: %d emas dan %d material." % [monster_name, gold_reward, material_reward])
+			_finish_dungeon_expedition(true, log)
+			return
+	else:
+		log.append("Lantai %d: party mundur setelah dikalahkan %s." % [floor_number, monster_name])
+		dungeon_data["failed"] = int(dungeon_data.get("failed", 0)) + 1
+		_finish_dungeon_expedition(false, log)
+		return
+	while log.size() > 12:
+		log.pop_front()
+	active["log"] = log
+	dungeon_data["active"] = active
+	_save_dungeon_data()
+	_refresh_dungeon_ui()
+
+
+func _finish_dungeon_expedition(victory: bool, expedition_log: Array) -> void:
+	var history: Array = dungeon_data.get("history", [])
+	history.append({"result": "Berhasil" if victory else "Mundur", "party": dungeon_data.get("active", {}).get("party", []), "log": expedition_log.duplicate()})
+	while history.size() > 20:
+		history.pop_front()
+	dungeon_data["history"] = history
+	dungeon_data["active"] = {}
+	_save_dungeon_data()
+	_refresh_dungeon_ui()
+
+
+func _refresh_dungeon_ui() -> void:
+	if dungeon_status_label == null or not is_instance_valid(dungeon_status_label):
+		return
+	var active: Dictionary = dungeon_data.get("active", {})
+	if active.is_empty():
+		dungeon_status_label.text = "Party berikutnya sedang dibentuk otomatis..."
+		dungeon_log_label.text = "Menunggu petualangan berikutnya."
+	else:
+		dungeon_status_label.text = "Party: %s\nProgres: Lantai %d / 5" % [", ".join(active.get("party", [])), int(active.get("floor", 0))]
+		dungeon_log_label.text = "\n".join(active.get("log", []))
 
 
 func _open_city_center() -> void:
