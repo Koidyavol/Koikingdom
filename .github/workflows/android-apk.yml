@@ -53,16 +53,24 @@ jobs:
           use-dotnet: false
           include-templates: true
 
+      - name: Restore stable debug signing key
+        uses: actions/cache@v4
+        with:
+          path: debug.keystore
+          key: koikingdom-android-debug-keystore-v1
+
       - name: Configure Android export environment
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.config/godot" "$HOME/.android" build
-          keytool -genkeypair -v \
-            -keystore "$GITHUB_WORKSPACE/debug.keystore" \
-            -storepass android -alias androiddebugkey \
-            -keypass android -keyalg RSA -keysize 2048 \
-            -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          if [ ! -s "$GITHUB_WORKSPACE/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$GITHUB_WORKSPACE/debug.keystore" \
+              -storepass android -alias androiddebugkey \
+              -keypass android -keyalg RSA -keysize 2048 \
+              -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
           cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
           [gd_resource type="EditorSettings" format=3]
 
