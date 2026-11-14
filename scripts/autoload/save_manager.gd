@@ -34,6 +34,11 @@ func load_world() -> bool:
 			return save_world()
 		return false
 
+	if FileAccess.file_exists(BACKUP_PATH) and _read_json_file(BACKUP_PATH):
+		_normalize_data()
+		save_world()
+		return true
+
 	migration = _read_legacy_data()
 	_data = migration["data"]
 	_normalize_data()
