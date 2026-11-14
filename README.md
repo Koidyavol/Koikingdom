@@ -30,6 +30,8 @@ Saat pertama kali dijalankan setelah pembaruan, `SaveManager` mencoba memigrasik
 - `scripts/autoload/save_manager.gd`: penyimpanan JSON terpusat dan migrasi data lama.
 - `export_presets.cfg`: preset ekspor Android.
 
+Build Android memakai debug keystore yang disimpan melalui GitHub Actions cache agar tanda tangan APK tetap sama pada build berikutnya. Build pertama setelah cache diperkenalkan memakai kunci baru, jadi mungkin perlu memasang ulang sekali. Kunci ini hanya untuk build pengembangan, bukan rilis produksi.
+
 ## Cara menguji penyimpanan
 
 1. Buka proyek dengan Godot 4.4.1.
