@@ -669,21 +669,19 @@ func _open_academy() -> void:
 
 
 func _load_academy_data() -> void:
-	var config := ConfigFile.new()
-	if config.load("user://academy.cfg") == OK:
-		var saved = config.get_value("academy", "data", {"students": {}, "last_school_check": ""})
-		if saved is Dictionary:
-			academy_data = saved
-	if not academy_data.has("students") or not academy_data["students"] is Dictionary:
+	academy_data = SaveManager.get_section("academy", {
+		"students": {},
+		"last_school_check": ""
+	})
+	if not (academy_data.get("students") is Dictionary):
 		academy_data["students"] = {}
+	if not academy_data.has("last_school_check"):
+		academy_data["last_school_check"] = ""
 
 
 func _save_academy_data() -> void:
-	var config := ConfigFile.new()
-	config.set_value("academy", "data", academy_data)
-	var error := config.save("user://academy.cfg")
-	if error != OK:
-		push_warning("Gagal menyimpan data Akademi: " + str(error))
+	if not SaveManager.set_section("academy", academy_data):
+		push_warning("Gagal menyimpan data Akademi ke world_state.json.")
 
 
 func _register_academy_student(name_input: LineEdit) -> void:
@@ -1174,27 +1172,25 @@ func _open_dungeon() -> void:
 
 
 func _load_dungeon_data() -> void:
-	var config := ConfigFile.new()
-	if config.load("user://dungeon.cfg") == OK:
-		dungeon_data = {
-			"active": config.get_value("dungeon", "active", {}),
-			"completed": config.get_value("dungeon", "completed", 0),
-			"failed": config.get_value("dungeon", "failed", 0),
-			"gold": config.get_value("dungeon", "gold", 0),
-			"materials": config.get_value("dungeon", "materials", 0),
-			"history": config.get_value("dungeon", "history", [])
-		}
+	dungeon_data = SaveManager.get_section("dungeon", {
+		"active": {},
+		"completed": 0,
+		"failed": 0,
+		"gold": 0,
+		"materials": 0,
+		"history": []
+	})
+	if not (dungeon_data.get("active") is Dictionary):
+		dungeon_data["active"] = {}
+	if not (dungeon_data.get("history") is Array):
+		dungeon_data["history"] = []
+	for key in ["completed", "failed", "gold", "materials"]:
+		dungeon_data[key] = maxi(0, int(dungeon_data.get(key, 0)))
 
 
 func _save_dungeon_data() -> void:
-	var config := ConfigFile.new()
-	config.set_value("dungeon", "active", dungeon_data.get("active", {}))
-	config.set_value("dungeon", "completed", dungeon_data.get("completed", 0))
-	config.set_value("dungeon", "failed", dungeon_data.get("failed", 0))
-	config.set_value("dungeon", "gold", dungeon_data.get("gold", 0))
-	config.set_value("dungeon", "materials", dungeon_data.get("materials", 0))
-	config.set_value("dungeon", "history", dungeon_data.get("history", []))
-	config.save("user://dungeon.cfg")
+	if not SaveManager.set_section("dungeon", dungeon_data):
+		push_warning("Gagal menyimpan data Dungeon ke world_state.json.")
 
 
 func _dungeon_available_characters() -> Array:
@@ -1508,21 +1504,21 @@ func _open_city_location(location_name: String, description: String) -> void:
 
 
 func _load_guild_data() -> void:
-	var config := ConfigFile.new()
-	if config.load("user://guild.cfg") == OK:
-		guild_data = {
-			"members": config.get_value("guild", "members", {}),
-			"completed_missions": config.get_value("guild", "completed_missions", 0),
-			"active_mission": config.get_value("guild", "active_mission", {})
-		}
+	guild_data = SaveManager.get_section("guild", {
+		"members": {},
+		"completed_missions": 0,
+		"active_mission": {}
+	})
+	if not (guild_data.get("members") is Dictionary):
+		guild_data["members"] = {}
+	if not (guild_data.get("active_mission") is Dictionary):
+		guild_data["active_mission"] = {}
+	guild_data["completed_missions"] = maxi(0, int(guild_data.get("completed_missions", 0)))
 
 
 func _save_guild_data() -> void:
-	var config := ConfigFile.new()
-	config.set_value("guild", "members", guild_data.get("members", {}))
-	config.set_value("guild", "completed_missions", guild_data.get("completed_missions", 0))
-	config.set_value("guild", "active_mission", guild_data.get("active_mission", {}))
-	config.save("user://guild.cfg")
+	if not SaveManager.set_section("guild", guild_data):
+		push_warning("Gagal menyimpan data Guild ke world_state.json.")
 
 
 func _adventurer_rank(points: int) -> String:
