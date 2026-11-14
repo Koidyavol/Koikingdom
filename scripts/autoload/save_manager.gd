@@ -13,6 +13,8 @@ func _ready() -> void:
 
 
 func load_world() -> bool:
+	var migration: Dictionary = {}
+
 	if FileAccess.file_exists(SAVE_PATH):
 		if _read_json_file(SAVE_PATH):
 			_normalize_data()
@@ -25,14 +27,14 @@ func load_world() -> bool:
 			return true
 
 		push_warning("File save utama dan cadangan tidak dapat dibaca. Mencoba migrasi save lama.")
-		var migration := _read_legacy_data()
+		migration = _read_legacy_data()
 		_data = migration["data"]
 		_normalize_data()
 		if bool(migration["found"]):
 			return save_world()
 		return false
 
-	var migration := _read_legacy_data()
+	migration = _read_legacy_data()
 	_data = migration["data"]
 	_normalize_data()
 	if bool(migration["found"]):
@@ -75,18 +77,25 @@ func save_world() -> bool:
 	var had_previous_save := FileAccess.file_exists(SAVE_PATH)
 
 	if had_previous_save:
-		if FileAccess.file_exists(BACKUP_PATH):
-			var remove_backup_error := DirAccess.remove_absolute(backup_absolute)
-			if remove_backup_error != OK:
-				DirAccess.remove_absolute(temp_absolute)
-				push_warning("Tidak dapat membersihkan file cadangan lama: " + str(remove_backup_error))
-				return false
+		if _is_valid_json_file(SAVE_PATH):
+			if FileAccess.file_exists(BACKUP_PATH):
+				var remove_backup_error := DirAccess.remove_absolute(backup_absolute)
+				if remove_backup_error != OK:
+					DirAccess.remove_absolute(temp_absolute)
+					push_warning("Tidak dapat membersihkan file cadangan lama: " + str(remove_backup_error))
+					return false
 
-		var backup_error := DirAccess.rename_absolute(save_absolute, backup_absolute)
-		if backup_error != OK:
-			DirAccess.remove_absolute(temp_absolute)
-			push_warning("Tidak dapat membuat cadangan save: " + str(backup_error))
-			return false
+			var backup_error := DirAccess.rename_absolute(save_absolute, backup_absolute)
+			if backup_error != OK:
+				DirAccess.remove_absolute(temp_absolute)
+				push_warning("Tidak dapat membuat cadangan save: " + str(backup_error))
+				return false
+		else:
+			var remove_corrupt_error := DirAccess.remove_absolute(save_absolute)
+			if remove_corrupt_error != OK:
+				DirAccess.remove_absolute(temp_absolute)
+				push_warning("Tidak dapat mengganti save yang rusak: " + str(remove_corrupt_error))
+				return false
 
 	var replace_error := DirAccess.rename_absolute(temp_absolute, save_absolute)
 	if replace_error != OK:
@@ -102,6 +111,15 @@ func save_world() -> bool:
 
 func has_save_file() -> bool:
 	return FileAccess.file_exists(SAVE_PATH)
+
+
+func _is_valid_json_file(path: String) -> bool:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return false
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	return parsed is Dictionary
 
 
 func _read_json_file(path: String) -> bool:
