@@ -1,1 +1,0 @@
-Upload foto wajah/portrait Aiko dengan nama portrait.png di folder ini.
