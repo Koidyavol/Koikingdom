@@ -3,7 +3,7 @@ extends Node
 const SAVE_PATH := "user://koi_kingdom_save.json"
 const TEMP_PATH := "user://koi_kingdom_save.tmp"
 const BACKUP_PATH := "user://koi_kingdom_save.backup.json"
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 
 
 func load_game() -> Dictionary:
@@ -19,11 +19,12 @@ func load_game() -> Dictionary:
 	return _default_save()
 
 
-func save_game(clock_state: Dictionary, world_state: Dictionary) -> bool:
+func save_game(clock_state: Dictionary, world_state: Dictionary, citizen_state: Dictionary = {}) -> bool:
 	var data := {
 		"schema_version": SCHEMA_VERSION,
 		"clock": clock_state.duplicate(true),
 		"world": world_state.duplicate(true),
+		"citizens": citizen_state.duplicate(true),
 		"meta": {
 			"last_unix_timestamp": int(Time.get_unix_time_from_system())
 		}
@@ -109,10 +110,12 @@ func _normalize_data(raw: Dictionary) -> Dictionary:
 	var normalized := _default_save()
 	normalized["schema_version"] = SCHEMA_VERSION
 
-	for section in ["clock", "world", "meta"]:
+	for section in ["clock", "world", "citizens", "meta"]:
 		var value: Variant = raw.get(section, {})
 		if value is Dictionary:
 			normalized[section] = value.duplicate(true)
+		elif section == "citizens" and value is Array:
+			normalized[section] = {"citizens": value.duplicate(true)}
 
 	return normalized
 
@@ -124,6 +127,7 @@ func _default_save() -> Dictionary:
 			"total_game_minutes": 7 * 60
 		},
 		"world": {},
+		"citizens": {},
 		"meta": {
 			"last_unix_timestamp": 0
 		}
