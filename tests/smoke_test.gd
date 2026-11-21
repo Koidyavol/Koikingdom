@@ -63,7 +63,59 @@ func _run_tests() -> void:
 		quit(1)
 		return
 
+	var citizen_script: Script = load("res://scripts/autoload/citizen_manager.gd")
+	var citizen: Object = citizen_script.new()
+	var citizen_node := citizen as Node
+	root.add_child(citizen_node)
+	citizen.call("apply_state", {}, 420)
+
+	var citizen_state: Dictionary = citizen.call("get_state")
+	var citizen_list: Array = citizen_state.get("citizens", [])
+	if citizen_list.size() != 12:
+		push_error("Smoke test gagal: roster awal harus memiliki 12 warga.")
+		citizen_node.queue_free()
+		clock_node.queue_free()
+		world_node.queue_free()
+		quit(1)
+		return
+
+	var asteria_summary: Dictionary = citizen.call("get_summary_for_kingdom", "asteria")
+	if int(asteria_summary.get("count", 0)) != 3:
+		push_error("Smoke test gagal: Asteria harus memiliki 3 warga contoh.")
+		citizen_node.queue_free()
+		clock_node.queue_free()
+		world_node.queue_free()
+		quit(1)
+		return
+
+	citizen.call("advance_to_minute", 480)
+	var work_summary: Dictionary = citizen.call("get_summary_for_kingdom", "asteria")
+	var activity_counts: Dictionary = work_summary.get("activity_counts", {})
+	if int(activity_counts.get("Bekerja", 0)) != 3:
+		push_error("Smoke test gagal: jadwal kerja pukul 08.00 tidak berjalan.")
+		citizen_node.queue_free()
+		clock_node.queue_free()
+		world_node.queue_free()
+		quit(1)
+		return
+
+	var restored: Object = citizen_script.new()
+	var restored_node := restored as Node
+	root.add_child(restored_node)
+	restored.call("apply_state", citizen.call("get_state"), 480)
+	var restored_summary: Dictionary = restored.call("get_summary_for_kingdom", "asteria")
+	if int(restored_summary.get("count", 0)) != 3:
+		push_error("Smoke test gagal: roster warga tidak pulih setelah load.")
+		restored_node.queue_free()
+		citizen_node.queue_free()
+		clock_node.queue_free()
+		world_node.queue_free()
+		quit(1)
+		return
+
 	print("KOI KINGDOM SMOKE TEST: PASS")
+	restored_node.queue_free()
+	citizen_node.queue_free()
 	clock_node.queue_free()
 	world_node.queue_free()
 	quit(0)
