@@ -16,11 +16,18 @@ func _ready() -> void:
 	var saved := SaveManager.load_game()
 	var clock_data: Variant = saved.get("clock", {})
 	var world_data: Variant = saved.get("world", {})
+	var citizen_data: Variant = saved.get("citizens", {})
 
 	SimulationClock.apply_state(clock_data if clock_data is Dictionary else {})
 	WorldManager.apply_state(world_data if world_data is Dictionary else {})
+	CitizenManager.apply_state(
+		citizen_data if citizen_data is Dictionary else {},
+		SimulationClock.total_game_minutes
+	)
+
 	SimulationClock.day_changed.connect(WorldManager.advance_to_day)
 	WorldManager.advance_to_day(SimulationClock.get_day_number())
+	SimulationClock.minute_advanced.connect(CitizenManager.advance_to_minute)
 
 	var meta: Dictionary = saved.get("meta", {})
 	var last_saved_unix := int(meta.get("last_unix_timestamp", 0))
@@ -77,7 +84,7 @@ func _build_ui() -> void:
 	layout.add_child(_clock_label)
 
 	_status_label = Label.new()
-	_status_label.text = "Simulasi otonom awal · Empat kerajaan"
+	_status_label.text = "12 warga contoh menjalankan jadwal dan kebutuhan otonom"
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_label.add_theme_color_override("font_color", MUTED_TEXT_COLOR)
 	layout.add_child(_status_label)
@@ -132,7 +139,9 @@ func _refresh_ui(_value: Variant = null) -> void:
 			continue
 
 		var kingdom := WorldManager.get_kingdom(kingdom_id)
-		label.text = "%s  ·  %s\nPemimpin: %s\nPenduduk: %s  |  Emas: %s  |  Pangan: %s\nPajak: %.1f%%  |  Stabilitas: %.1f%%" % [
+		var citizen_summary := CitizenManager.get_summary_for_kingdom(kingdom_id)
+		var activity_counts: Dictionary = citizen_summary.get("activity_counts", {})
+		label.text = "%s  ·  %s\nPemimpin: %s\nPenduduk: %s  |  Emas: %s  |  Pangan: %s\nPajak: %.1f%%  |  Stabilitas: %.1f%%\nWarga contoh: %d  |  Kerja: %d  |  Tidur: %d  |  Sosial: %d" % [
 			str(kingdom.get("name", kingdom_id)),
 			kingdom_id.to_upper(),
 			str(kingdom.get("ruler", "-")),
@@ -140,12 +149,17 @@ func _refresh_ui(_value: Variant = null) -> void:
 			str(kingdom.get("treasury", 0)),
 			str(kingdom.get("food", 0)),
 			float(kingdom.get("tax_rate", 0.0)) * 100.0,
-			float(kingdom.get("stability", 0.0))
+			float(kingdom.get("stability", 0.0)),
+			int(citizen_summary.get("count", 0)),
+			int(activity_counts.get("Bekerja", 0)),
+			int(activity_counts.get("Tidur", 0)),
+			int(activity_counts.get("Bersosialisasi", 0))
 		]
 
 
 func _save_game() -> void:
 	SaveManager.save_game(
 		SimulationClock.get_state(),
-		WorldManager.get_state()
+		WorldManager.get_state(),
+		CitizenManager.get_state()
 	)
