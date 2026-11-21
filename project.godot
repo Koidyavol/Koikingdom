@@ -8,6 +8,7 @@ run/main_scene="res://scenes/main.tscn"
 SaveManager="*res://scripts/autoload/save_manager.gd"
 SimulationClock="*res://scripts/autoload/simulation_clock.gd"
 WorldManager="*res://scripts/autoload/world_manager.gd"
+CitizenManager="*res://scripts/autoload/citizen_manager.gd"
 
 [display]
 window/size/viewport_width=1280
