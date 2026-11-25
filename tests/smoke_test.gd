@@ -79,6 +79,25 @@ func _run_tests() -> void:
 		quit(1)
 		return
 
+	var seen_ids := {}
+	for citizen_data in citizen_list:
+		var citizen_id := str(citizen_data.get("id", ""))
+		if citizen_id.is_empty() or seen_ids.has(citizen_id):
+			push_error("Smoke test gagal: ID warga kosong atau duplikat.")
+			citizen_node.queue_free()
+			clock_node.queue_free()
+			world_node.queue_free()
+			quit(1)
+			return
+		seen_ids[citizen_id] = true
+		if str(citizen_data.get("gender", "")).is_empty() or str(citizen_data.get("race", "")).is_empty():
+			push_error("Smoke test gagal: gender dan ras warga harus terisi.")
+			citizen_node.queue_free()
+			clock_node.queue_free()
+			world_node.queue_free()
+			quit(1)
+			return
+
 	var asteria_summary: Dictionary = citizen.call("get_summary_for_kingdom", "asteria")
 	if int(asteria_summary.get("count", 0)) != 3:
 		push_error("Smoke test gagal: Asteria harus memiliki 3 warga contoh.")
@@ -88,11 +107,22 @@ func _run_tests() -> void:
 		quit(1)
 		return
 
-	citizen.call("advance_to_minute", 480)
+	citizen.call("advance_to_minute", 540)
 	var work_summary: Dictionary = citizen.call("get_summary_for_kingdom", "asteria")
 	var activity_counts: Dictionary = work_summary.get("activity_counts", {})
 	if int(activity_counts.get("Bekerja", 0)) != 3:
-		push_error("Smoke test gagal: jadwal kerja pukul 08.00 tidak berjalan.")
+		push_error("Smoke test gagal: jadwal kerja Asteria pukul 09.00 tidak berjalan.")
+		citizen_node.queue_free()
+		clock_node.queue_free()
+		world_node.queue_free()
+		quit(1)
+		return
+
+	var offline_target := 420 + 14400
+	citizen.call("advance_to_minute", offline_target)
+	var citizen_after_catchup: Dictionary = citizen.call("get_state")
+	if int(citizen_after_catchup.get("last_processed_total_game_minutes", -1)) != offline_target:
+		push_error("Smoke test gagal: penanda catch-up warga tidak sesuai target.")
 		citizen_node.queue_free()
 		clock_node.queue_free()
 		world_node.queue_free()
@@ -102,7 +132,7 @@ func _run_tests() -> void:
 	var restored: Object = citizen_script.new()
 	var restored_node := restored as Node
 	root.add_child(restored_node)
-	restored.call("apply_state", citizen.call("get_state"), 480)
+	restored.call("apply_state", citizen_after_catchup, offline_target)
 	var restored_summary: Dictionary = restored.call("get_summary_for_kingdom", "asteria")
 	if int(restored_summary.get("count", 0)) != 3:
 		push_error("Smoke test gagal: roster warga tidak pulih setelah load.")
