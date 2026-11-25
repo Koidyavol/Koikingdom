@@ -2,8 +2,17 @@ extends Node
 
 const KINGDOM_ORDER := ["asteria", "mizuhara", "verdantia", "drakemont"]
 const MAX_CITIZENS := 64
-const MAX_CATCHUP_MINUTES := 1440
+# Cocok dengan batas offline clock: 2 jam nyata = 14.400 menit game = 10 hari.
+const MAX_CATCHUP_MINUTES := 14400
 const STAT_MAX := 100.0
+const JOB_SCHEDULES := {
+	"Petani": {"start": 6, "end": 15},
+	"Pedagang": {"start": 9, "end": 18},
+	"Penjaga": {"start": 8, "end": 20},
+	"Tabib": {"start": 8, "end": 17},
+	"Pelajar": {"start": 8, "end": 15},
+	"default": {"start": 8, "end": 16}
+}
 
 var citizens: Array[Dictionary] = []
 var last_processed_total_game_minutes := 0
@@ -163,7 +172,7 @@ func _decide_activity(citizen: Dictionary, hour: int) -> void:
 	elif hunger < 25.0 or hour == 12:
 		citizen["activity"] = "Makan"
 		citizen["activity_detail"] = "Makan"
-	elif hour >= 8 and hour <= 16:
+	elif _is_work_hour(citizen, hour):
 		citizen["activity"] = "Bekerja"
 		citizen["activity_detail"] = str(citizen.get("job", "Pekerjaan"))
 	elif hour >= 18 and hour <= 21:
@@ -174,20 +183,26 @@ func _decide_activity(citizen: Dictionary, hour: int) -> void:
 		citizen["activity_detail"] = "Waktu luang"
 
 
+func _is_work_hour(citizen: Dictionary, hour: int) -> bool:
+	var job := str(citizen.get("job", ""))
+	var schedule: Dictionary = JOB_SCHEDULES.get(job, JOB_SCHEDULES["default"])
+	return hour >= int(schedule["start"]) and hour < int(schedule["end"])
+
+
 func _build_default_citizens() -> Array[Dictionary]:
 	var roster := [
-		["asteria_001", "Mira", "asteria", "Petani", 29, "Tekun"],
-		["asteria_002", "Leon", "asteria", "Pedagang", 34, "Ramah"],
-		["asteria_003", "Hana", "asteria", "Penjaga", 26, "Berani"],
-		["mizuhara_001", "Yuki", "mizuhara", "Petani", 24, "Tekun"],
-		["mizuhara_002", "Ren", "mizuhara", "Pedagang", 31, "Cermat"],
-		["mizuhara_003", "Akira", "mizuhara", "Penjaga", 28, "Disiplin"],
-		["verdantia_001", "Sylvi", "verdantia", "Petani", 27, "Tenang"],
-		["verdantia_002", "Arin", "verdantia", "Tabib", 35, "Peduli"],
-		["verdantia_003", "Eira", "verdantia", "Penjaga", 22, "Berani"],
-		["drakemont_001", "Kael", "drakemont", "Petani", 32, "Tekun"],
-		["drakemont_002", "Neris", "drakemont", "Pedagang", 30, "Cermat"],
-		["drakemont_003", "Doran", "drakemont", "Penjaga", 38, "Disiplin"]
+		["asteria_001", "Mira", "asteria", "Petani", 29, "Tekun", "Perempuan", "Human"],
+		["asteria_002", "Leon", "asteria", "Pedagang", 34, "Ramah", "Laki-laki", "Human"],
+		["asteria_003", "Hana", "asteria", "Penjaga", 26, "Berani", "Perempuan", "Elf"],
+		["mizuhara_001", "Yuki", "mizuhara", "Petani", 24, "Tekun", "Perempuan", "Human"],
+		["mizuhara_002", "Ren", "mizuhara", "Pedagang", 31, "Cermat", "Laki-laki", "Human"],
+		["mizuhara_003", "Akira", "mizuhara", "Penjaga", 28, "Disiplin", "Laki-laki", "Beastkin"],
+		["verdantia_001", "Sylvi", "verdantia", "Petani", 27, "Tenang", "Perempuan", "Elf"],
+		["verdantia_002", "Arin", "verdantia", "Tabib", 35, "Peduli", "Perempuan", "Human"],
+		["verdantia_003", "Eira", "verdantia", "Penjaga", 22, "Berani", "Perempuan", "Elf"],
+		["drakemont_001", "Kael", "drakemont", "Petani", 32, "Tekun", "Laki-laki", "Dwarf"],
+		["drakemont_002", "Neris", "drakemont", "Pedagang", 30, "Cermat", "Perempuan", "Human"],
+		["drakemont_003", "Doran", "drakemont", "Penjaga", 38, "Disiplin", "Laki-laki", "Dwarf"]
 	]
 	var result: Array[Dictionary] = []
 	for row in roster:
@@ -198,6 +213,8 @@ func _build_default_citizens() -> Array[Dictionary]:
 			"job": row[3],
 			"age": row[4],
 			"personality": row[5],
+			"gender": row[6],
+			"race": row[7],
 			"hunger": 100.0,
 			"energy": 100.0,
 			"social": 100.0,
@@ -210,6 +227,8 @@ func _build_default_citizens() -> Array[Dictionary]:
 func _sanitize_citizen(saved: Dictionary, defaults: Dictionary) -> Dictionary:
 	var result := defaults.duplicate(true)
 	result["name"] = str(saved.get("name", defaults["name"]))
+	result["gender"] = str(saved.get("gender", defaults.get("gender", "Tidak diketahui")))
+	result["race"] = str(saved.get("race", defaults.get("race", "Human")))
 	result["job"] = str(saved.get("job", defaults["job"]))
 	result["age"] = clampi(int(saved.get("age", defaults["age"])), 1, 120)
 	result["personality"] = str(saved.get("personality", defaults["personality"]))
@@ -232,6 +251,8 @@ func _make_fallback_citizen(saved: Dictionary, citizen_id: String) -> Dictionary
 		"job": str(saved.get("job", "Warga")),
 		"age": 18,
 		"personality": "Biasa",
+		"gender": str(saved.get("gender", "Tidak diketahui")),
+		"race": str(saved.get("race", "Human")),
 		"hunger": 100.0,
 		"energy": 100.0,
 		"social": 100.0,
